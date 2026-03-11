@@ -31,7 +31,27 @@ pipeline {
                         error('.env file not found in workspace. Create it before running the pipeline.')
                     }
 
-                    def envFile = readProperties file: '.env'
+                    def envFile = [:]
+                    readFile('.env').split('\n').each { rawLine ->
+                        def line = rawLine.trim()
+                        if (!line || line.startsWith('#')) {
+                            return
+                        }
+
+                        int separatorIndex = line.indexOf('=')
+                        if (separatorIndex <= 0) {
+                            return
+                        }
+
+                        def key = line.substring(0, separatorIndex).trim()
+                        def value = line.substring(separatorIndex + 1).trim()
+
+                        if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+                            value = value.substring(1, value.length() - 1)
+                        }
+
+                        envFile[key] = value
+                    }
                     def requiredKeys = [
                         'APP_NAME',
                         'APP_PORT',
