@@ -73,7 +73,6 @@ pipeline {
 
                     env.APP_NAME = envFile['APP_NAME']
                     env.APP_PORT = envFile['APP_PORT']
-                    env.JAVA_HOME = envFile['JAVA_HOME'] ?: ''
                     env.CONTAINER_NAME = envFile['CONTAINER_NAME']
                     env.DOCKERHUB_REPO = envFile['DOCKERHUB_REPO']
                     env.DOCKER_CREDENTIALS_ID = envFile['DOCKER_CREDENTIALS_ID']
@@ -85,20 +84,8 @@ pipeline {
                     if (envFile['PROXY_HOST']?.trim() && envFile['PROXY_PORT']?.trim()) {
                         env.MAVEN_CLI_OPTS = "${env.MAVEN_CLI_OPTS} -Dhttp.proxyHost=${envFile['PROXY_HOST']} -Dhttp.proxyPort=${envFile['PROXY_PORT']} -Dhttps.proxyHost=${envFile['PROXY_HOST']} -Dhttps.proxyPort=${envFile['PROXY_PORT']}"
                     }
-
-                    // Prefer explicit JAVA_HOME from .env; otherwise resolve from java executable on agent.
-                    if (env.JAVA_HOME?.trim()) {
-                        env.PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-                    } else {
-                        def detectedJavaHome = sh(
-                            script: 'set +e; JAVA_BIN=$(readlink -f "$(command -v java 2>/dev/null)" 2>/dev/null); if [ -n "$JAVA_BIN" ]; then dirname "$(dirname "$JAVA_BIN")"; fi',
-                            returnStdout: true
-                        ).trim()
-                        if (detectedJavaHome) {
-                            env.JAVA_HOME = detectedJavaHome
-                            env.PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
-                        }
-                    }
+                    env.MAVEN_IMAGE = 'maven:3.9-eclipse-temurin-17'
+                    env.MAVEN_DOCKER_ARGS = '--rm -v "$PWD":/workspace -w /workspace -v "$HOME/.m2":/root/.m2'
 
                     env.IMAGE_TAG = env.BUILD_NUMBER
                     env.IMAGE_LATEST = "${env.DOCKERHUB_REPO}:latest"
@@ -107,31 +94,17 @@ pipeline {
             }
         }
 
-        stage('Validate Java') {
-            steps {
-                sh '''
-                    if [ -z "$JAVA_HOME" ] || [ ! -x "$JAVA_HOME/bin/java" ]; then
-                        echo "JAVA_HOME is not valid: '$JAVA_HOME'"
-                        echo "Set JAVA_HOME in Jenkins secret .env to your JDK path, e.g. /usr/lib/jvm/java-17-openjdk-amd64"
-                        exit 1
-                    fi
-                    java -version
-                    mvn -version
-                '''
-            }
-        }
-
         stage('Build') {
             steps {
                 timeout(time: 20, unit: 'MINUTES') {
-                    sh "mvn ${MAVEN_CLI_OPTS} clean compile"
+                    sh 'docker run ${MAVEN_DOCKER_ARGS} ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} clean compile'
                 }
             }
         }
 
         stage('Unit Test') {
             steps {
-                sh "mvn ${MAVEN_CLI_OPTS} test"
+                sh 'docker run ${MAVEN_DOCKER_ARGS} ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} test'
             }
             post {
                 always {
@@ -142,14 +115,14 @@ pipeline {
 
         stage('Package') {
             steps {
-                sh "mvn ${MAVEN_CLI_OPTS} package -DskipTests"
+                sh 'docker run ${MAVEN_DOCKER_ARGS} ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} package -DskipTests'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv("${SONARQUBE_SERVER}") {
-                    sh "mvn ${MAVEN_CLI_OPTS} sonar:sonar -Dsonar.projectKey=${SONAR_PROJECT_KEY}"
+                    sh 'docker run ${MAVEN_DOCKER_ARGS} ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} sonar:sonar -Dsonar.projectKey=${SONAR_PROJECT_KEY}'
                 }
             }
         }
