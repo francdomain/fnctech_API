@@ -80,9 +80,15 @@ pipeline {
                     env.SONARQUBE_SERVER = envFile['SONARQUBE_SERVER']
                     env.SONAR_PROJECT_KEY = envFile['SONAR_PROJECT_KEY']
 
-                    env.MAVEN_CLI_OPTS = '-B -ntp -Dmaven.wagon.http.retryHandler.count=3 -Dsun.net.client.defaultConnectTimeout=30000 -Dsun.net.client.defaultReadTimeout=180000'
+                    env.MAVEN_CLI_OPTS = '-B -ntp -Dmaven.wagon.http.retryHandler.count=3 -Dsun.net.client.defaultConnectTimeout=30000 -Dsun.net.client.defaultReadTimeout=180000 -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true'
+                    env.MAVEN_DOCKER_PROXY_ARGS = ''
                     if (envFile['PROXY_HOST']?.trim() && envFile['PROXY_PORT']?.trim()) {
+                        def proxyUrl = "http://${envFile['PROXY_HOST']}:${envFile['PROXY_PORT']}"
                         env.MAVEN_CLI_OPTS = "${env.MAVEN_CLI_OPTS} -Dhttp.proxyHost=${envFile['PROXY_HOST']} -Dhttp.proxyPort=${envFile['PROXY_PORT']} -Dhttps.proxyHost=${envFile['PROXY_HOST']} -Dhttps.proxyPort=${envFile['PROXY_PORT']}"
+                        env.MAVEN_DOCKER_PROXY_ARGS = "-e HTTP_PROXY=${proxyUrl} -e HTTPS_PROXY=${proxyUrl} -e http_proxy=${proxyUrl} -e https_proxy=${proxyUrl}"
+                        if (envFile['NO_PROXY']?.trim()) {
+                            env.MAVEN_DOCKER_PROXY_ARGS = "${env.MAVEN_DOCKER_PROXY_ARGS} -e NO_PROXY=${envFile['NO_PROXY']} -e no_proxy=${envFile['NO_PROXY']}"
+                        }
                     }
                     env.MAVEN_IMAGE = 'maven:3.9-eclipse-temurin-17'
 
@@ -96,14 +102,14 @@ pipeline {
         stage('Build') {
             steps {
                 timeout(time: 20, unit: 'MINUTES') {
-                    sh 'docker run --rm -v "$WORKSPACE":/workspace -w /workspace -v "$HOME/.m2":/root/.m2 ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} clean compile'
+                    sh 'docker run --rm --network host ${MAVEN_DOCKER_PROXY_ARGS} -v "$WORKSPACE":/workspace -w /workspace -v "$HOME/.m2":/root/.m2 ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} clean compile'
                 }
             }
         }
 
         stage('Unit Test') {
             steps {
-                sh 'docker run --rm -v "$WORKSPACE":/workspace -w /workspace -v "$HOME/.m2":/root/.m2 ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} test'
+                sh 'docker run --rm --network host ${MAVEN_DOCKER_PROXY_ARGS} -v "$WORKSPACE":/workspace -w /workspace -v "$HOME/.m2":/root/.m2 ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} test'
             }
             post {
                 always {
@@ -114,14 +120,14 @@ pipeline {
 
         stage('Package') {
             steps {
-                sh 'docker run --rm -v "$WORKSPACE":/workspace -w /workspace -v "$HOME/.m2":/root/.m2 ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} package -DskipTests'
+                sh 'docker run --rm --network host ${MAVEN_DOCKER_PROXY_ARGS} -v "$WORKSPACE":/workspace -w /workspace -v "$HOME/.m2":/root/.m2 ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} package -DskipTests'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv("${SONARQUBE_SERVER}") {
-                    sh 'docker run --rm -v "$WORKSPACE":/workspace -w /workspace -v "$HOME/.m2":/root/.m2 ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} sonar:sonar -Dsonar.projectKey=${SONAR_PROJECT_KEY}'
+                    sh 'docker run --rm --network host ${MAVEN_DOCKER_PROXY_ARGS} -v "$WORKSPACE":/workspace -w /workspace -v "$HOME/.m2":/root/.m2 ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} sonar:sonar -Dsonar.projectKey=${SONAR_PROJECT_KEY}'
                 }
             }
         }
