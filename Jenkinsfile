@@ -85,7 +85,6 @@ pipeline {
                         env.MAVEN_CLI_OPTS = "${env.MAVEN_CLI_OPTS} -Dhttp.proxyHost=${envFile['PROXY_HOST']} -Dhttp.proxyPort=${envFile['PROXY_PORT']} -Dhttps.proxyHost=${envFile['PROXY_HOST']} -Dhttps.proxyPort=${envFile['PROXY_PORT']}"
                     }
                     env.MAVEN_IMAGE = 'maven:3.9-eclipse-temurin-17'
-                    env.MAVEN_DOCKER_ARGS = '--rm -v "$PWD":/workspace -w /workspace -v "$HOME/.m2":/root/.m2'
 
                     env.IMAGE_TAG = env.BUILD_NUMBER
                     env.IMAGE_LATEST = "${env.DOCKERHUB_REPO}:latest"
@@ -97,14 +96,14 @@ pipeline {
         stage('Build') {
             steps {
                 timeout(time: 20, unit: 'MINUTES') {
-                    sh 'docker run ${MAVEN_DOCKER_ARGS} ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} clean compile'
+                    sh 'docker run --rm -v "$WORKSPACE":/workspace -w /workspace -v "$HOME/.m2":/root/.m2 ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} clean compile'
                 }
             }
         }
 
         stage('Unit Test') {
             steps {
-                sh 'docker run ${MAVEN_DOCKER_ARGS} ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} test'
+                sh 'docker run --rm -v "$WORKSPACE":/workspace -w /workspace -v "$HOME/.m2":/root/.m2 ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} test'
             }
             post {
                 always {
@@ -115,14 +114,14 @@ pipeline {
 
         stage('Package') {
             steps {
-                sh 'docker run ${MAVEN_DOCKER_ARGS} ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} package -DskipTests'
+                sh 'docker run --rm -v "$WORKSPACE":/workspace -w /workspace -v "$HOME/.m2":/root/.m2 ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} package -DskipTests'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv("${SONARQUBE_SERVER}") {
-                    sh 'docker run ${MAVEN_DOCKER_ARGS} ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} sonar:sonar -Dsonar.projectKey=${SONAR_PROJECT_KEY}'
+                    sh 'docker run --rm -v "$WORKSPACE":/workspace -w /workspace -v "$HOME/.m2":/root/.m2 ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} sonar:sonar -Dsonar.projectKey=${SONAR_PROJECT_KEY}'
                 }
             }
         }
