@@ -3,12 +3,13 @@ pipeline {
 
     options {
         disableConcurrentBuilds()
+        skipDefaultCheckout(true)
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/francdomain/fnctech_API.git'
+                git branch: 'main', url: 'https://github.com/francdomain/fnctech_API.git'
             }
         }
 
