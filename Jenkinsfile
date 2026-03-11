@@ -81,6 +81,11 @@ pipeline {
                     env.SONARQUBE_SERVER = envFile['SONARQUBE_SERVER']
                     env.SONAR_PROJECT_KEY = envFile['SONAR_PROJECT_KEY']
 
+                    env.MAVEN_CLI_OPTS = '-B -ntp -Dmaven.wagon.http.retryHandler.count=3 -Dsun.net.client.defaultConnectTimeout=30000 -Dsun.net.client.defaultReadTimeout=180000'
+                    if (envFile['PROXY_HOST']?.trim() && envFile['PROXY_PORT']?.trim()) {
+                        env.MAVEN_CLI_OPTS = "${env.MAVEN_CLI_OPTS} -Dhttp.proxyHost=${envFile['PROXY_HOST']} -Dhttp.proxyPort=${envFile['PROXY_PORT']} -Dhttps.proxyHost=${envFile['PROXY_HOST']} -Dhttps.proxyPort=${envFile['PROXY_PORT']}"
+                    }
+
                     // Prefer explicit JAVA_HOME from .env; otherwise resolve from java executable on agent.
                     if (env.JAVA_HOME?.trim()) {
                         env.PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
@@ -118,13 +123,15 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'mvn -B clean compile'
+                timeout(time: 20, unit: 'MINUTES') {
+                    sh "mvn ${MAVEN_CLI_OPTS} clean compile"
+                }
             }
         }
 
         stage('Unit Test') {
             steps {
-                sh 'mvn -B test'
+                sh "mvn ${MAVEN_CLI_OPTS} test"
             }
             post {
                 always {
@@ -135,14 +142,14 @@ pipeline {
 
         stage('Package') {
             steps {
-                sh 'mvn -B package -DskipTests'
+                sh "mvn ${MAVEN_CLI_OPTS} package -DskipTests"
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv("${SONARQUBE_SERVER}") {
-                    sh "mvn -B sonar:sonar -Dsonar.projectKey=${SONAR_PROJECT_KEY}"
+                    sh "mvn ${MAVEN_CLI_OPTS} sonar:sonar -Dsonar.projectKey=${SONAR_PROJECT_KEY}"
                 }
             }
         }
