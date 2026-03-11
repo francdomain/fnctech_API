@@ -73,6 +73,7 @@ pipeline {
 
                     env.APP_NAME = envFile['APP_NAME']
                     env.APP_PORT = envFile['APP_PORT']
+                    env.JAVA_HOME = envFile['JAVA_HOME'] ?: ''
                     env.CONTAINER_NAME = envFile['CONTAINER_NAME']
                     env.DOCKERHUB_REPO = envFile['DOCKERHUB_REPO']
                     env.DOCKER_CREDENTIALS_ID = envFile['DOCKER_CREDENTIALS_ID']
@@ -80,10 +81,38 @@ pipeline {
                     env.SONARQUBE_SERVER = envFile['SONARQUBE_SERVER']
                     env.SONAR_PROJECT_KEY = envFile['SONAR_PROJECT_KEY']
 
+                    // Prefer explicit JAVA_HOME from .env; otherwise resolve from java executable on agent.
+                    if (env.JAVA_HOME?.trim()) {
+                        env.PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+                    } else {
+                        def detectedJavaHome = sh(
+                            script: 'set +e; JAVA_BIN=$(readlink -f "$(command -v java 2>/dev/null)" 2>/dev/null); if [ -n "$JAVA_BIN" ]; then dirname "$(dirname "$JAVA_BIN")"; fi',
+                            returnStdout: true
+                        ).trim()
+                        if (detectedJavaHome) {
+                            env.JAVA_HOME = detectedJavaHome
+                            env.PATH = "${env.JAVA_HOME}/bin:${env.PATH}"
+                        }
+                    }
+
                     env.IMAGE_TAG = env.BUILD_NUMBER
                     env.IMAGE_LATEST = "${env.DOCKERHUB_REPO}:latest"
                     env.IMAGE_BUILD = "${env.DOCKERHUB_REPO}:${env.IMAGE_TAG}"
                 }
+            }
+        }
+
+        stage('Validate Java') {
+            steps {
+                sh '''
+                    if [ -z "$JAVA_HOME" ] || [ ! -x "$JAVA_HOME/bin/java" ]; then
+                        echo "JAVA_HOME is not valid: '$JAVA_HOME'"
+                        echo "Set JAVA_HOME in Jenkins secret .env to your JDK path, e.g. /usr/lib/jvm/java-17-openjdk-amd64"
+                        exit 1
+                    fi
+                    java -version
+                    mvn -version
+                '''
             }
         }
 
