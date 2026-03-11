@@ -13,6 +13,17 @@ pipeline {
             }
         }
 
+        stage('Prepare .env') {
+            steps {
+                withCredentials([file(credentialsId: 'fintech-env-file', variable: 'ENV_FILE_PATH')]) {
+                    sh '''
+                        cp "$ENV_FILE_PATH" .env
+                        chmod 600 .env
+                    '''
+                }
+            }
+        }
+
         stage('Load Environment Config') {
             steps {
                 script {
@@ -163,6 +174,7 @@ pipeline {
     post {
         always {
             sh 'docker compose down -v || true'
+            sh 'rm -f .env || true'
         }
         success {
             echo "Pipeline completed successfully. Pushed ${IMAGE_BUILD} and ${IMAGE_LATEST}"
