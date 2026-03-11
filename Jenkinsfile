@@ -102,11 +102,11 @@ pipeline {
             }
         }
 
-        stage('Run Container') {
+        stage('Run Containers (Compose)') {
             steps {
                 sh '''
-                    docker rm -f ${CONTAINER_NAME} || true
-                    docker run -d --name ${CONTAINER_NAME} -p ${APP_PORT}:${APP_PORT} ${IMAGE_BUILD}
+                    docker compose down -v || true
+                    docker compose up -d db app
                 '''
             }
         }
@@ -163,7 +163,7 @@ pipeline {
 
     post {
         always {
-            sh 'docker rm -f ${CONTAINER_NAME} || true'
+            sh 'docker compose down -v || true'
         }
         success {
             echo "Pipeline completed successfully. Pushed ${IMAGE_BUILD} and ${IMAGE_LATEST}"
