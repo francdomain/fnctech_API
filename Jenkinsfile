@@ -9,6 +9,7 @@ pipeline {
         SONAR_PROJECT_KEY         = 'fintech-api'
         DOCKER_CREDENTIALS_ID     = 'dockerhub-credentials'
         SMOKE_TEST_CREDENTIALS_ID = 'fintech-uat-credentials'
+        SONAR_TOKEN_CREDENTIAL_ID  = 'sonarqube-token'
         MAVEN_SETTINGS_ID         = '11e2101e-5b3d-4afa-894f-834c2cfacd33'
         MAVEN_IMAGE               = 'maven:3.9-eclipse-temurin-17'
         MAVEN_CLI_OPTS            = '-B -ntp -s settings.xml -Dmaven.repo.local=/workspace/.m2/repository'
@@ -78,7 +79,9 @@ pipeline {
                     steps {
                         configFileProvider([configFile(fileId: env.MAVEN_SETTINGS_ID, targetLocation: 'settings.xml')]) {
                             withSonarQubeEnv("${SONARQUBE_SERVER}") {
-                                sh "docker run --rm --network host -e SONAR_HOST_URL=${SONAR_HOST_URL} -e SONAR_AUTH_TOKEN=${SONAR_AUTH_TOKEN} -v \"\$WORKSPACE\":/workspace -w /workspace ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} sonar:sonar -Dsonar.projectKey=${SONAR_PROJECT_KEY} -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.token=${SONAR_AUTH_TOKEN}"
+                                withCredentials([string(credentialsId: env.SONAR_TOKEN_CREDENTIAL_ID, variable: 'SONAR_TOKEN')]) {
+                                    sh 'docker run --rm --network host -v "$WORKSPACE":/workspace -w /workspace ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} sonar:sonar -Dsonar.projectKey=${SONAR_PROJECT_KEY} -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_TOKEN'
+                                }
                             }
                         }
                     }
