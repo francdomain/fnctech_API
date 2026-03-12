@@ -1,6 +1,13 @@
 .env
+<<<<<<< HEAD
 settings.xml
 target/
 *.log
 .idea/
 .vscode/
+=======
+target/
+.idea/
+.vscode/
+*.log
+>>>>>>> 4ffa9561589c88bb39f5fc3ae2d42d159543398b
