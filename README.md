@@ -1,232 +1,179 @@
-# 💳 Fintech API — Spring Boot + Maven
+# Fintech API — CI/CD with Jenkins
 
-A simple, production-ready Fintech REST API with JWT authentication, account management, and transactions.
+A production-ready Fintech REST API built with Spring Boot, featuring JWT authentication, account management, and transactions. This repository includes a full CI/CD pipeline using Jenkins, Docker, Docker Compose, and SonarQube.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-fintech-api/                                      ← ROOT DIRECTORY
-│
-├── pom.xml                                       ← Maven build config + dependencies
-├── Dockerfile                                    ← Multi-stage Docker build (Java 17)
-├── Jenkinsfile                                   ← CI/CD pipeline (build, test, sonar, docker, smoke, uat, push)
-├── .env                                          ← Pipeline runtime config (local/Jenkins workspace)
-├── .gitignore                                    ← Ignore secrets/artifacts (includes .env)
-│
-├── src/
-│   ├── main/
-│   │   ├── java/com/fintech/
-│   │   │   │
-│   │   │   ├── FintechApplication.java           ← Spring Boot entry point
-│   │   │   │
-│   │   │   ├── config/
-│   │   │   │   ├── SecurityConfig.java           ← Spring Security + JWT filter chain
-│   │   │   │   ├── UserDetailsServiceImpl.java   ← Loads user from DB for auth
-│   │   │   │   └── DataSeeder.java               ← Seeds demo users on startup
-│   │   │   │
-│   │   │   ├── controller/
-│   │   │   │   ├── AuthController.java           ← POST /api/auth/register, /login
-│   │   │   │   ├── AccountController.java        ← GET/POST /api/accounts
-│   │   │   │   └── TransactionController.java    ← POST /api/transactions/*
-│   │   │   │
-│   │   │   ├── service/
-│   │   │   │   ├── AuthService.java              ← Register & login logic
-│   │   │   │   ├── AccountService.java           ← Create & fetch accounts
-│   │   │   │   └── TransactionService.java       ← Deposit, withdraw, transfer
-│   │   │   │
-│   │   │   ├── entity/
-│   │   │   │   ├── User.java                     ← User JPA entity
-│   │   │   │   ├── Account.java                  ← Account JPA entity
-│   │   │   │   └── Transaction.java              ← Transaction JPA entity
-│   │   │   │
-│   │   │   ├── repository/
-│   │   │   │   ├── UserRepository.java           ← User DB queries
-│   │   │   │   ├── AccountRepository.java        ← Account DB queries
-│   │   │   │   └── TransactionRepository.java    ← Transaction DB queries
-│   │   │   │
-│   │   │   ├── dto/
-│   │   │   │   └── Dto.java                      ← All request/response DTOs + ApiResponse<T>
-│   │   │   │
-│   │   │   ├── security/
-│   │   │   │   ├── JwtUtils.java                 ← Generate & validate JWT tokens
-│   │   │   │   └── JwtAuthFilter.java            ← Intercepts requests, sets auth context
-│   │   │   │
-│   │   │   └── exception/
-│   │   │       ├── FintechException.java         ← Custom runtime exception
-│   │   │       └── GlobalExceptionHandler.java   ← Maps exceptions to HTTP responses
-│   │   │
-│   │   └── resources/
-│   │       └── application.properties            ← DB, JWT, server config
-│   │
-│   └── test/
-│       └── java/com/fintech/                     ← Test directory
+ci-with-jenkins/
+├── Dockerfile                  ← Multi-stage build (Maven build + JRE runtime)
+├── Jenkinsfile                 ← Declarative CI/CD pipeline
+├── docker-compose.yml          ← Orchestrates app + PostgreSQL
+├── pom.xml                     ← Maven build config
+├── settings.xml                ← Maven proxy/mirror config (gitignored)
+├── .env                        ← Runtime secrets for docker-compose (gitignored)
+└── src/
+    └── main/
+        ├── java/com/fintech/
+        │   ├── FintechApplication.java
+        │   ├── config/         ← Security, UserDetailsService, DataSeeder
+        │   ├── controller/     ← Auth, Account, Transaction endpoints
+        │   ├── service/        ← Business logic
+        │   ├── entity/         ← JPA entities (User, Account, Transaction)
+        │   ├── repository/     ← Spring Data repositories
+        │   ├── dto/            ← Request/response DTOs
+        │   ├── security/       ← JwtUtils, JwtAuthFilter
+        │   └── exception/      ← GlobalExceptionHandler
+        └── resources/
+            └── application.properties
 ```
 
 ---
 
-## 🚀 Getting Started
+## Tech Stack
 
-### Prerequisites
+- **Java 17** / **Spring Boot 3.2**
+- **PostgreSQL 16** (via Docker Compose)
+- **JWT** (`jjwt 0.11.5`)
+- **Maven 3.9** (runs inside Docker container during CI)
+- **Docker** / **Docker Compose**
+- **Jenkins** (Declarative Pipeline)
+- **SonarQube** (code quality gate)
 
-- Java 17+
-- Maven 3.8+
+---
 
-### Run the app
+## Running Locally with Docker Compose
 
 ```bash
-cd fintech-api
-mvn spring-boot:run
+# Copy and populate the env file
+cp .env.example .env   # or create manually (see .env Keys below)
+
+# Start database + app
+docker compose up -d
 ```
 
-Server starts on: `http://localhost:8080`
-H2 Console: `http://localhost:8080/h2-console` (JDBC URL: `jdbc:h2:mem:fintechdb`)
-
-### Run with Docker (Port 8081)
-
-```bash
-docker build -t fintech-api .
-docker run --rm -p 8081:8081 fintech-api
-```
-
-Container app URL: `http://localhost:8081`
+App: `http://localhost:8081`
+PostgreSQL: `localhost:5432`
 
 ---
 
-## 🔐 Demo Credentials (auto-seeded)
+## Demo Credentials (auto-seeded)
 
 | Role  | Email             | Password   |
-| ----- | ----------------- | ---------- |
+|-------|-------------------|------------|
 | ADMIN | admin@fintech.com | Admin@1234 |
 | USER  | jane@fintech.com  | Jane@1234  |
 
 ---
 
-## 📡 API Endpoints
+## API Endpoints
 
 ### Auth
 
-| Method | Endpoint           | Auth | Description       |
-| ------ | ------------------ | ---- | ----------------- |
-| POST   | /api/auth/register | None | Register new user |
-| POST   | /api/auth/login    | None | Login, get JWT    |
+| Method | Endpoint             | Auth   | Description    |
+|--------|----------------------|--------|----------------|
+| POST   | /api/auth/register   | None   | Register user  |
+| POST   | /api/auth/login      | None   | Login, get JWT |
 
 ### Accounts
 
-| Method | Endpoint                      | Auth   | Description          |
-| ------ | ----------------------------- | ------ | -------------------- |
-| POST   | /api/accounts                 | Bearer | Create account       |
-| GET    | /api/accounts                 | Bearer | List my accounts     |
-| GET    | /api/accounts/{accountNumber} | Bearer | Get specific account |
+| Method | Endpoint                       | Auth   | Description          |
+|--------|--------------------------------|--------|----------------------|
+| POST   | /api/accounts                  | Bearer | Create account       |
+| GET    | /api/accounts                  | Bearer | List my accounts     |
+| GET    | /api/accounts/{accountNumber}  | Bearer | Get specific account |
 
 ### Transactions
 
-| Method | Endpoint                                  | Auth   | Description         |
-| ------ | ----------------------------------------- | ------ | ------------------- |
-| POST   | /api/transactions/deposit                 | Bearer | Deposit funds       |
-| POST   | /api/transactions/withdraw                | Bearer | Withdraw funds      |
-| POST   | /api/transactions/transfer                | Bearer | Transfer funds      |
-| GET    | /api/transactions/history/{accountNumber} | Bearer | Transaction history |
+| Method | Endpoint                                   | Auth   | Description         |
+|--------|--------------------------------------------|--------|---------------------|
+| POST   | /api/transactions/deposit                  | Bearer | Deposit funds       |
+| POST   | /api/transactions/withdraw                 | Bearer | Withdraw funds      |
+| POST   | /api/transactions/transfer                 | Bearer | Transfer funds      |
+| GET    | /api/transactions/history/{accountNumber}  | Bearer | Transaction history |
 
----
-
-## 📦 Sample Requests
-
-### Register
+### Sample Requests
 
 ```json
+// Register
 POST /api/auth/register
-{
-  "fullName": "John Smith",
-  "email": "john@example.com",
-  "password": "Pass@1234",
-  "phoneNumber": "+19876543210"
-}
-```
+{ "fullName": "John Smith", "email": "john@example.com", "password": "Pass@1234", "phoneNumber": "+19876543210" }
 
-### Login → get token
-
-```json
+// Login
 POST /api/auth/login
-{
-  "email": "john@example.com",
-  "password": "Pass@1234"
-}
-```
+{ "email": "john@example.com", "password": "Pass@1234" }
 
-### Create Account (use Bearer token)
-
-```json
+// Create Account (Bearer token required)
 POST /api/accounts
-Authorization: Bearer <token>
-{
-  "accountType": "SAVINGS",
-  "currency": "USD"
-}
-```
+{ "accountType": "SAVINGS", "currency": "USD" }
 
-### Transfer
-
-```json
+// Transfer
 POST /api/transactions/transfer
-Authorization: Bearer <token>
-{
-  "fromAccountNumber": "FT0000000001",
-  "toAccountNumber": "FT0000000002",
-  "amount": 100.00,
-  "description": "Rent payment"
-}
+{ "fromAccountNumber": "FT0000000001", "toAccountNumber": "FT0000000002", "amount": 100.00, "description": "Rent payment" }
 ```
 
 ---
 
-## 🛠 Tech Stack
+## CI/CD Pipeline (Jenkins)
 
-- **Java 17**
-- **Spring Boot 3.2** (Web, Security, Data JPA, Validation)
-- **H2** in-memory database (swap for PostgreSQL/MySQL easily)
-- **JWT** via `jjwt 0.11.5`
-- **Lombok**
-- **BCrypt** password hashing
+### Pipeline Stages
 
----
+```
+Checkout
+Prepare Environment
+├── CI
+│   ├── Build          (mvn clean compile)
+│   ├── Unit Test      (mvn test + JUnit results)
+│   └── Package        (mvn package -DskipTests)
+├── Code Quality
+│   ├── SonarQube Analysis
+│   └── Quality Gate
+├── Docker
+│   └── Docker Build   (docker compose build)
+└── Release
+    ├── Deploy         (docker compose up)
+    ├── Smoke Test     (app reachability check)
+    ├── UAT            (credentialed login test)
+    └── Push to Docker Hub
+```
 
-## ⚙️ Jenkins CI/CD
+Each Maven stage runs inside a `maven:3.9-eclipse-temurin-17` container with the `settings.xml` injected from Jenkins Config File Provider (proxy, mirror config).
 
-The repository includes a declarative `Jenkinsfile` with these stages:
+### Jenkins Credentials Required
 
-1. Checkout
-2. Load Environment Config (`.env`)
-3. Build (`mvn clean compile`)
-4. Unit Test (`mvn test`)
-5. Package (`mvn package -DskipTests`)
-6. SonarQube Analysis
-7. Quality Gate
-8. Docker Build
-9. Run Container
-10. Smoke Test (app reachability)
-11. UAT (credentialed login)
-12. Push Image to Docker Hub
+| Credential ID              | Type            | Used for                          |
+|----------------------------|-----------------|-----------------------------------|
+| `fintech-env-file`         | Secret file     | `.env` with DB credentials        |
+| `dockerhub-credentials`    | Username/Password | Docker Hub login                |
+| `fintech-uat-credentials`  | Username/Password | UAT login test (`/api/auth/login`) |
 
-### Required `.env` Keys
+> The Config File Provider plugin must be installed. The `settings.xml` is stored as a Managed File with ID `11e2101e-5b3d-4afa-894f-834c2cfacd33`.
+
+### `.env` File (for docker-compose — DB credentials only)
 
 ```env
-APP_NAME=fintech-api
+DB_NAME=fintech_db
+DB_USER=postgres
+DB_PASSWORD=your_password
 APP_PORT=8081
-CONTAINER_NAME=fintech-api-ci
-
-DOCKERHUB_REPO=your-dockerhub-username/fintech-api
-DOCKER_CREDENTIALS_ID=dockerhub-credentials
-SMOKE_TEST_CREDENTIALS_ID=fintech-smoke-login-credentials
-
-SONARQUBE_SERVER=sonarqube-server
-SONAR_PROJECT_KEY=fintech-api
 ```
 
-> Note: `.env` is ignored by git. Ensure it exists in the Jenkins workspace/agent before running the pipeline.
+> `.env` and `settings.xml` are gitignored and must be provided separately on the Jenkins agent.
 
-### Jenkins Credentials Needed
+### Docker Images Published
 
-- `dockerhub-credentials` → **Username with password** for Docker Hub
-- `fintech-smoke-login-credentials` → **Username with password** used for UAT login (`/api/auth/login`)
+Each successful build pushes two tags to Docker Hub:
+
+- `francdomain/fnctech-api:<build-number>` — versioned
+- `francdomain/fnctech-api:latest` — always latest
+
+---
+
+## Dockerfile
+
+Multi-stage build:
+
+1. **Build stage** — `maven:3.9.9-eclipse-temurin-17`: copies `settings.xml`, runs `dependency:go-offline`, then `clean package`
+2. **Runtime stage** — `eclipse-temurin:17-jre-jammy`: copies the JAR, exposes port 8080
