@@ -4,7 +4,7 @@ pipeline {
     environment {
         // Non-secret config
         DOCKERHUB_REPO            = 'francdomain/fnctech-api'
-        APP_PORT                  = '8081'
+        APP_PORT                  = '8080'
         SONARQUBE_SERVER          = 'SonarQube'
         SONAR_PROJECT_KEY         = 'fintech-api'
         DOCKER_CREDENTIALS_ID     = 'dockerhub-credentials'
