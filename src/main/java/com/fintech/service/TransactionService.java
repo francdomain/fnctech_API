@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -111,7 +110,7 @@ public class TransactionService {
         accountService.validateOwnership(account, email);
         return transactionRepository.findAllByAccount(account).stream()
                 .map(this::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private void validateActive(Account account) {
