@@ -27,7 +27,7 @@ public class AccountController {
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody CreateAccountRequest request) {
         AccountResponse account = accountService.createAccount(userDetails.getUsername(), request);
-        return ResponseEntity.ok(ApiResponse.success(account, "Account created successfully"));
+        return ResponseEntity.ok(ApiResponse.ok(account, "Account created successfully"));
     }
 
     /**
@@ -38,7 +38,7 @@ public class AccountController {
     public ResponseEntity<ApiResponse<List<AccountResponse>>> getMyAccounts(
             @AuthenticationPrincipal UserDetails userDetails) {
         List<AccountResponse> accounts = accountService.getUserAccounts(userDetails.getUsername());
-        return ResponseEntity.ok(ApiResponse.success(accounts, "Accounts fetched"));
+        return ResponseEntity.ok(ApiResponse.ok(accounts, "Accounts fetched"));
     }
 
     /**
@@ -50,6 +50,6 @@ public class AccountController {
             @PathVariable String accountNumber,
             @AuthenticationPrincipal UserDetails userDetails) {
         AccountResponse account = accountService.getAccount(accountNumber, userDetails.getUsername());
-        return ResponseEntity.ok(ApiResponse.success(account, "Account fetched"));
+        return ResponseEntity.ok(ApiResponse.ok(account, "Account fetched"));
     }
 }

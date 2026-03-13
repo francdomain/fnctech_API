@@ -9,88 +9,90 @@ import java.time.LocalDateTime;
 
 public class Dto {
 
+    private Dto() {}
+
     // ─── Auth ────────────────────────────────────────────────────────────────
 
     @Data public static class RegisterRequest {
-        @NotBlank public String fullName;
-        @Email @NotBlank public String email;
-        @NotBlank @Size(min = 8, message = "Password must be at least 8 characters") public String password;
-        @NotBlank public String phoneNumber;
+        @NotBlank private String fullName;
+        @Email @NotBlank private String email;
+        @NotBlank @Size(min = 8, message = "Password must be at least 8 characters") private String password;
+        @NotBlank private String phoneNumber;
     }
 
     @Data public static class LoginRequest {
-        @Email @NotBlank public String email;
-        @NotBlank public String password;
+        @Email @NotBlank private String email;
+        @NotBlank private String password;
     }
 
     @Data @Builder public static class AuthResponse {
-        public String token;
-        public String email;
-        public String fullName;
-        public String role;
+        private String token;
+        private String email;
+        private String fullName;
+        private String role;
     }
 
     // ─── Account ─────────────────────────────────────────────────────────────
 
     @Data public static class CreateAccountRequest {
-        @NotNull public Account.AccountType accountType;
-        @NotBlank public String currency;
+        @NotNull private Account.AccountType accountType;
+        @NotBlank private String currency;
     }
 
     @Data @Builder public static class AccountResponse {
-        public Long id;
-        public String accountNumber;
-        public Account.AccountType accountType;
-        public BigDecimal balance;
-        public String currency;
-        public Account.AccountStatus status;
-        public LocalDateTime createdAt;
+        private Long id;
+        private String accountNumber;
+        private Account.AccountType accountType;
+        private BigDecimal balance;
+        private String currency;
+        private Account.AccountStatus status;
+        private LocalDateTime createdAt;
     }
 
     // ─── Transaction ─────────────────────────────────────────────────────────
 
     @Data public static class DepositRequest {
-        @NotBlank public String accountNumber;
-        @NotNull @DecimalMin("0.01") public BigDecimal amount;
-        public String description;
+        @NotBlank private String accountNumber;
+        @NotNull @DecimalMin("0.01") private BigDecimal amount;
+        private String description;
     }
 
     @Data public static class WithdrawRequest {
-        @NotBlank public String accountNumber;
-        @NotNull @DecimalMin("0.01") public BigDecimal amount;
-        public String description;
+        @NotBlank private String accountNumber;
+        @NotNull @DecimalMin("0.01") private BigDecimal amount;
+        private String description;
     }
 
     @Data public static class TransferRequest {
-        @NotBlank public String fromAccountNumber;
-        @NotBlank public String toAccountNumber;
-        @NotNull @DecimalMin("0.01") public BigDecimal amount;
-        public String description;
+        @NotBlank private String fromAccountNumber;
+        @NotBlank private String toAccountNumber;
+        @NotNull @DecimalMin("0.01") private BigDecimal amount;
+        private String description;
     }
 
     @Data @Builder public static class TransactionResponse {
-        public Long id;
-        public String referenceNumber;
-        public String senderAccount;
-        public String receiverAccount;
-        public BigDecimal amount;
-        public String currency;
-        public Transaction.TransactionType type;
-        public Transaction.TransactionStatus status;
-        public String description;
-        public LocalDateTime createdAt;
-        public LocalDateTime completedAt;
+        private Long id;
+        private String referenceNumber;
+        private String senderAccount;
+        private String receiverAccount;
+        private BigDecimal amount;
+        private String currency;
+        private Transaction.TransactionType type;
+        private Transaction.TransactionStatus status;
+        private String description;
+        private LocalDateTime createdAt;
+        private LocalDateTime completedAt;
     }
 
     // ─── Generic ─────────────────────────────────────────────────────────────
 
     @Data @Builder @AllArgsConstructor @NoArgsConstructor
     public static class ApiResponse<T> {
-        public boolean success;
-        public String message;
-        public T data;
+        private boolean success;
+        private String message;
+        private T data;
 
-        public static <T> ApiResponse<T> success(T data, String message) {
+        public static <T> ApiResponse<T> ok(T data, String message) {
             return ApiResponse.<T>builder().success(true).message(message).data(data).build();
         }
 

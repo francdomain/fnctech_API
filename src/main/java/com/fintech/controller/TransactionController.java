@@ -27,7 +27,7 @@ public class TransactionController {
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody DepositRequest request) {
         TransactionResponse tx = transactionService.deposit(userDetails.getUsername(), request);
-        return ResponseEntity.ok(ApiResponse.success(tx, "Deposit successful"));
+        return ResponseEntity.ok(ApiResponse.ok(tx, "Deposit successful"));
     }
 
     /**
@@ -39,7 +39,7 @@ public class TransactionController {
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody WithdrawRequest request) {
         TransactionResponse tx = transactionService.withdraw(userDetails.getUsername(), request);
-        return ResponseEntity.ok(ApiResponse.success(tx, "Withdrawal successful"));
+        return ResponseEntity.ok(ApiResponse.ok(tx, "Withdrawal successful"));
     }
 
     /**
@@ -51,7 +51,7 @@ public class TransactionController {
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody TransferRequest request) {
         TransactionResponse tx = transactionService.transfer(userDetails.getUsername(), request);
-        return ResponseEntity.ok(ApiResponse.success(tx, "Transfer successful"));
+        return ResponseEntity.ok(ApiResponse.ok(tx, "Transfer successful"));
     }
 
     /**
@@ -63,6 +63,6 @@ public class TransactionController {
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable String accountNumber) {
         List<TransactionResponse> history = transactionService.getHistory(userDetails.getUsername(), accountNumber);
-        return ResponseEntity.ok(ApiResponse.success(history, "Transaction history fetched"));
+        return ResponseEntity.ok(ApiResponse.ok(history, "Transaction history fetched"));
     }
 }
