@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -16,6 +15,7 @@ public class AccountService {
 
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
+    private final Random random = new Random();
 
     public AccountResponse createAccount(String email, CreateAccountRequest request) {
         User user = userRepository.findByEmail(email)
@@ -36,7 +36,7 @@ public class AccountService {
                 .orElseThrow(() -> new FintechException("User not found"));
         return accountRepository.findByUser(user).stream()
                 .map(this::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public AccountResponse getAccount(String accountNumber, String email) {
@@ -59,7 +59,7 @@ public class AccountService {
     private String generateAccountNumber() {
         String number;
         do {
-            number = "FT" + String.format("%010d", new Random().nextLong(10_000_000_000L));
+            number = "FT" + String.format("%010d", random.nextLong(10_000_000_000L));
         } while (accountRepository.existsByAccountNumber(number));
         return number;
     }
