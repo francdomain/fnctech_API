@@ -4,6 +4,7 @@ import com.fintech.entity.*;
 import com.fintech.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -19,14 +20,20 @@ public class DataSeeder implements CommandLineRunner {
     private final AccountRepository accountRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${app.seed.admin-password}")
+    private String adminPassword;
+
+    @Value("${app.seed.demo-password}")
+    private String demoPassword;
+
     @Override
     public void run(String... args) {
         if (userRepository.count() == 0) {
             // Admin user
-            User admin = userRepository.save(User.builder()
+            userRepository.save(User.builder()
                     .fullName("Admin User")
                     .email("admin@fintech.com")
-                    .password(passwordEncoder.encode("Admin@1234"))
+                    .password(passwordEncoder.encode(adminPassword))
                     .phoneNumber("+1000000000")
                     .role(User.Role.ADMIN)
                     .build());
@@ -35,7 +42,7 @@ public class DataSeeder implements CommandLineRunner {
             User demo = userRepository.save(User.builder()
                     .fullName("Jane Doe")
                     .email("jane@fintech.com")
-                    .password(passwordEncoder.encode("Jane@1234"))
+                    .password(passwordEncoder.encode(demoPassword))
                     .phoneNumber("+1234567890")
                     .build());
 
@@ -47,9 +54,7 @@ public class DataSeeder implements CommandLineRunner {
                     .currency("USD")
                     .build());
 
-            log.info("✅ Demo data seeded:");
-            log.info("   Admin  → admin@fintech.com / Admin@1234");
-            log.info("   User   → jane@fintech.com  / Jane@1234");
+            log.info("Demo data seeded: admin@fintech.com and jane@fintech.com");
         }
     }
 }
