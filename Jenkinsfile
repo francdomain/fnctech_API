@@ -14,6 +14,7 @@ pipeline {
         MAVEN_SETTINGS_ID         = '11e2101e-5b3d-4afa-894f-834c2cfacd33'
         MAVEN_IMAGE               = 'maven:3.9-eclipse-temurin-17'
         MAVEN_CLI_OPTS            = '-B -ntp -s settings.xml -Dmaven.repo.local=/workspace/.m2/repository'
+        SONAR_MAVEN_PLUGIN_VERSION = '4.0.0.4121'
     }
 
     options {
@@ -82,11 +83,30 @@ pipeline {
                             configFileProvider([configFile(fileId: env.MAVEN_SETTINGS_ID, targetLocation: 'settings.xml')]) {
                                 withSonarQubeEnv("${SONARQUBE_SERVER}") {
                                     withCredentials([string(credentialsId: env.SONAR_TOKEN_CREDENTIAL_ID, variable: 'SONAR_TOKEN')]) {
+                                        script {
+                                            int sonarHealth = sh(
+                                                script: 'curl -fsS "$SONAR_HOST_URL/api/system/status" >/dev/null',
+                                                returnStatus: true
+                                            )
+                                            if (sonarHealth != 0) {
+                                                unstable("SonarQube server is unavailable (health-check failed). Skipping analysis for this run.")
+                                                return
+                                            }
+
+                                            int sonarSettingsApi = sh(
+                                                script: 'curl -fsS -u "$SONAR_TOKEN:" "$SONAR_HOST_URL/api/settings/values.protobuf" -o /dev/null',
+                                                returnStatus: true
+                                            )
+                                            if (sonarSettingsApi != 0) {
+                                                unstable("SonarQube settings API is unavailable (HTTP 500/timeout). Skipping analysis for this run.")
+                                                return
+                                            }
+                                        }
                                         timeout(time: 8, unit: 'MINUTES') {
                                             retry(3) {
                                                 sh '''
                                                     docker run --rm --network host -v "$WORKSPACE":/workspace -w /workspace ${MAVEN_IMAGE} \
-                                                      mvn ${MAVEN_CLI_OPTS} sonar:sonar \
+                                                      mvn ${MAVEN_CLI_OPTS} org.sonarsource.scanner.maven:sonar-maven-plugin:${SONAR_MAVEN_PLUGIN_VERSION}:sonar \
                                                       -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                                                       -Dsonar.host.url=$SONAR_HOST_URL \
                                                       -Dsonar.login=$SONAR_TOKEN \
