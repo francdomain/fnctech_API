@@ -5,7 +5,7 @@ pipeline {
         // Non-secret config
         COMPOSE_PROJECT_NAME      = 'fintech'
         DOCKERHUB_REPO            = 'francdomain/fnctech-api'
-        APP_PORT                  = '8080'
+        APP_PORT                  = '8081'
         SONARQUBE_SERVER          = 'SonarQube'
         SONAR_PROJECT_KEY         = 'fintech-api'
         DOCKER_CREDENTIALS_ID     = 'dockerhub-credentials'
@@ -152,20 +152,22 @@ pipeline {
 
                 stage('UAT') {
                     steps {
-                        withCredentials([usernamePassword(credentialsId: "${env.SMOKE_TEST_CREDENTIALS_ID}", usernameVariable: 'UAT_EMAIL', passwordVariable: 'UAT_PASSWORD')]) {
-                            sh '''
-                                status=$(curl -s -o /tmp/uat_response.json -w "%{http_code}" \
-                                    -X POST http://localhost:${APP_PORT}/api/auth/login \
-                                    -H "Content-Type: application/json" \
-                                    -d "{\"email\":\"${UAT_EMAIL}\",\"password\":\"${UAT_PASSWORD}\"}" || true)
-                                if [ "$status" = "200" ]; then
-                                    echo "UAT passed"
-                                else
-                                    echo "UAT failed: expected 200, got $status"
-                                    cat /tmp/uat_response.json || true
-                                    exit 1
-                                fi
-                            '''
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            withCredentials([usernamePassword(credentialsId: "${env.SMOKE_TEST_CREDENTIALS_ID}", usernameVariable: 'UAT_EMAIL', passwordVariable: 'UAT_PASSWORD')]) {
+                                sh '''
+                                    status=$(curl -s -o /tmp/uat_response.json -w "%{http_code}" \
+                                        -X POST http://localhost:${APP_PORT}/api/auth/login \
+                                        -H "Content-Type: application/json" \
+                                        -d "{\"email\":\"${UAT_EMAIL}\",\"password\":\"${UAT_PASSWORD}\"}" || true)
+                                    if [ "$status" = "200" ]; then
+                                        echo "UAT passed"
+                                    else
+                                        echo "UAT failed: expected 200, got $status"
+                                        cat /tmp/uat_response.json || true
+                                        exit 1
+                                    fi
+                                '''
+                            }
                         }
                     }
                 }
