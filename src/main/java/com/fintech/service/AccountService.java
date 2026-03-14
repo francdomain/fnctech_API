@@ -7,6 +7,7 @@ import com.fintech.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.util.*;
 
 @Service
@@ -15,7 +16,7 @@ public class AccountService {
 
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
-    private final Random random = new Random();
+    private final SecureRandom random = new SecureRandom();
 
     public AccountResponse createAccount(String email, CreateAccountRequest request) {
         User user = userRepository.findByEmail(email)
