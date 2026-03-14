@@ -80,20 +80,21 @@ pipeline {
                         configFileProvider([configFile(fileId: env.MAVEN_SETTINGS_ID, targetLocation: 'settings.xml')]) {
                             withSonarQubeEnv("${SONARQUBE_SERVER}") {
                                 withCredentials([string(credentialsId: env.SONAR_TOKEN_CREDENTIAL_ID, variable: 'SONAR_TOKEN')]) {
-                                    sh 'docker run --rm --network host -v "$WORKSPACE":/workspace -w /workspace ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} sonar:sonar -Dsonar.projectKey=${SONAR_PROJECT_KEY} -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN'
+                                    // sh 'docker run --rm --network host -v "$WORKSPACE":/workspace -w /workspace ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} sonar:sonar -Dsonar.projectKey=${SONAR_PROJECT_KEY} -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN'
+                                    sh 'docker run --rm --network host -v "$WORKSPACE":/workspace -w /workspace ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} sonar:sonar -Dsonar.projectKey=${SONAR_PROJECT_KEY} -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN -Dsonar.qualitygate.wait=true'
                                 }
                             }
                         }
                     }
                 }
 
-                stage('Quality Gate') {
-                    steps {
-                        timeout(time: 10, unit: 'MINUTES') {
-                            waitForQualityGate abortPipeline: true
-                        }
-                    }
-                }
+                // stage('Quality Gate') {
+                //     steps {
+                //         timeout(time: 10, unit: 'MINUTES') {
+                //             waitForQualityGate abortPipeline: true
+                //         }
+                //     }
+                // }
             }
         }
 
