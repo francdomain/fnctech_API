@@ -3,7 +3,6 @@ package com.fintech.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fintech.dto.Dto.*;
 import com.fintech.entity.Account;
-import com.fintech.security.JwtAuthFilter;
 import com.fintech.security.JwtUtils;
 import com.fintech.service.AccountService;
 import com.fintech.service.AuthService;
@@ -36,7 +35,6 @@ class AccountControllerTest {
     @MockBean private AccountService accountService;
     @MockBean private AuthService authService;
     @MockBean private TransactionService transactionService;
-    @MockBean private JwtAuthFilter jwtAuthFilter;
     @MockBean private JwtUtils jwtUtils;
     @MockBean private UserDetailsService userDetailsService;
 
