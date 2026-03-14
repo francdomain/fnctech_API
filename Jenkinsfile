@@ -103,7 +103,14 @@ pipeline {
                 stage('Docker Build') {
                     steps {
                         configFileProvider([configFile(fileId: env.MAVEN_SETTINGS_ID, targetLocation: 'settings.xml')]) {
-                            sh 'docker compose build app'
+                            sh '''
+                                for i in 1 2 3 4 5; do
+                                    docker pull eclipse-temurin:17-jre-jammy && break
+                                    echo "Pull attempt $i failed, retrying in 15s..."
+                                    sleep 15
+                                done
+                                docker compose build app
+                            '''
                         }
                     }
                 }
