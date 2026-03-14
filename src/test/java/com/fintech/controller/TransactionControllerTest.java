@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fintech.dto.Dto.*;
 import com.fintech.entity.Transaction;
 import com.fintech.security.JwtUtils;
+import com.fintech.service.AccountService;
+import com.fintech.service.AuthService;
 import com.fintech.service.TransactionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,12 +24,14 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(TransactionController.class)
+@WebMvcTest
 class TransactionControllerTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
 
+    @MockBean private AccountService accountService;
+    @MockBean private AuthService authService;
     @MockBean private TransactionService transactionService;
     @MockBean private JwtUtils jwtUtils;
     @MockBean private UserDetailsService userDetailsService;

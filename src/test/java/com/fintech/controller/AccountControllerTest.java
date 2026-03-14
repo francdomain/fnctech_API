@@ -5,6 +5,8 @@ import com.fintech.dto.Dto.*;
 import com.fintech.entity.Account;
 import com.fintech.security.JwtUtils;
 import com.fintech.service.AccountService;
+import com.fintech.service.AuthService;
+import com.fintech.service.TransactionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -24,13 +26,15 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(AccountController.class)
+@WebMvcTest
 class AccountControllerTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
 
     @MockBean private AccountService accountService;
+    @MockBean private AuthService authService;
+    @MockBean private TransactionService transactionService;
     @MockBean private JwtUtils jwtUtils;
     @MockBean private UserDetailsService userDetailsService;
 
