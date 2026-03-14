@@ -39,7 +39,7 @@ public class Dto {
         @NotBlank private String currency;
     }
 
-    @Data @Builder public static class AccountResponse {
+    @Data @Builder @AllArgsConstructor @NoArgsConstructor public static class AccountResponse {
         private Long id;
         private String accountNumber;
         private Account.AccountType accountType;
@@ -70,7 +70,7 @@ public class Dto {
         private String description;
     }
 
-    @Data @Builder public static class TransactionResponse {
+    @Data @Builder @AllArgsConstructor @NoArgsConstructor public static class TransactionResponse {
         private Long id;
         private String referenceNumber;
         private String senderAccount;
