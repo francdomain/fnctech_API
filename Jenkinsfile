@@ -5,7 +5,7 @@ pipeline {
         // Non-secret config
         COMPOSE_PROJECT_NAME      = 'fintech'
         DOCKERHUB_REPO            = 'francdomain/fnctech-api'
-        APP_PORT                  = '8081'
+        HOST_APP_PORT             = '8081'
         SONARQUBE_SERVER          = 'SonarQube'
         SONAR_PROJECT_KEY         = 'fintech-api'
         DOCKER_CREDENTIALS_ID     = 'dockerhub-credentials'
@@ -148,7 +148,7 @@ pipeline {
                         sh '''
                             for i in $(seq 1 30); do
                                 status=$(curl -s -o /dev/null -w "%{http_code}" \
-                                    -X POST http://localhost:${APP_PORT}/api/auth/login \
+                                    -X POST http://localhost:${HOST_APP_PORT}/api/auth/login \
                                     -H "Content-Type: application/json" -d '{}' || true)
                                 if [ "$status" != "000" ]; then
                                     echo "App reachable. HTTP status: $status"
@@ -158,6 +158,8 @@ pipeline {
                                 sleep 2
                             done
                             echo "Smoke test failed: app not reachable after 60s"
+                            docker compose ps || true
+                            docker compose logs --tail=200 app || true
                             exit 1
                         '''
                     }
@@ -169,7 +171,7 @@ pipeline {
                             withCredentials([usernamePassword(credentialsId: "${env.SMOKE_TEST_CREDENTIALS_ID}", usernameVariable: 'UAT_EMAIL', passwordVariable: 'UAT_PASSWORD')]) {
                                 sh '''
                                     status=$(curl -s -o /tmp/uat_response.json -w "%{http_code}" \
-                                        -X POST http://localhost:${APP_PORT}/api/auth/login \
+                                        -X POST http://localhost:${HOST_APP_PORT}/api/auth/login \
                                         -H "Content-Type: application/json" \
                                         -d "{\"email\":\"${UAT_EMAIL}\",\"password\":\"${UAT_PASSWORD}\"}" || true)
                                     if [ "$status" = "200" ]; then
