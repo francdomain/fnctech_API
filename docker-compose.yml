@@ -2,7 +2,6 @@ version: '3.9'
 services:
   db:
     image: postgres:16-alpine
-    container_name: fintech-postgres
     restart: unless-stopped
     env_file:
       - .env
@@ -23,7 +22,6 @@ services:
   app:
     build:
       context: .
-    container_name: fintech-api-app
     depends_on:
       db:
         condition: service_healthy

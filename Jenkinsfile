@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         // Non-secret config
+        COMPOSE_PROJECT_NAME      = 'fintech'
         DOCKERHUB_REPO            = 'francdomain/fnctech-api'
         APP_PORT                  = '8080'
         SONARQUBE_SERVER          = 'SonarQube'
@@ -122,6 +123,7 @@ pipeline {
                 stage('Deploy') {
                     steps {
                         sh '''
+                            docker rm -f fintech-postgres fintech-api-app 2>/dev/null || true
                             docker compose down -v || true
                             docker compose up -d db app
                         '''
