@@ -53,7 +53,7 @@ pipeline {
                 stage('Unit Test') {
                     steps {
                         configFileProvider([configFile(fileId: env.MAVEN_SETTINGS_ID, targetLocation: 'settings.xml')]) {
-                            sh 'docker run --rm --network host -v "$WORKSPACE":/workspace -w /workspace ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} test'
+                            sh 'docker run --rm --network host -v "$WORKSPACE":/workspace -w /workspace ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} verify'
                         }
                     }
                     post {
