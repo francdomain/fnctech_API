@@ -146,7 +146,7 @@ pipeline {
                 stage('Smoke Test') {
                     steps {
                         sh '''
-                            for i in {1..30}; do
+                            for i in $(seq 1 30); do
                                 status=$(curl -s -o /dev/null -w "%{http_code}" \
                                     -X POST http://localhost:${APP_PORT}/api/auth/login \
                                     -H "Content-Type: application/json" -d '{}' || true)
