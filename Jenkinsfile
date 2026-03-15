@@ -7,6 +7,7 @@ pipeline {
         DOCKERHUB_REPO            = 'francdomain/fnctech-api'
         HOST_APP_PORT             = '8081'
         SONARQUBE_SERVER          = 'SonarQube'
+        SONAR_URL                 = 'http://172.26.44.147:9000'
         SONAR_PROJECT_KEY         = 'fintech-api'
         DOCKER_CREDENTIALS_ID     = 'dockerhub-credentials'
         SMOKE_TEST_CREDENTIALS_ID = 'fintech-uat-credentials'
@@ -48,6 +49,18 @@ pipeline {
                         echo "DB not ready yet, attempt $i/30..."
                         sleep 5
                     done
+
+                    # If SonarQube lost its DB connection (HTTP 500), restart it now that DB is back up
+                    SONAR_API_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+                        $SONAR_URL/api/settings/values.protobuf 2>/dev/null || echo "000")
+                    echo "SonarQube settings API probe (no-auth): HTTP $SONAR_API_CODE"
+                    if [ "$SONAR_API_CODE" = "500" ]; then
+                        echo "SonarQube DB connection is broken. Restarting SonarQube service..."
+                        sudo systemctl restart sonarqube \
+                            || echo "WARNING: sudo restart failed — add 'jenkins ALL=(ALL) NOPASSWD: /bin/systemctl restart sonarqube' to sudoers. Scan may fail."
+                        echo "Waiting 90s for SonarQube to reinitialize..."
+                        sleep 90
+                    fi
                 '''
             }
         }
@@ -111,9 +124,8 @@ pipeline {
                                                 unstable("SonarQube settings API is unavailable (HTTP 500/timeout). Skipping analysis for this run.")
                                                 return
                                             }
-                                        }
-                                        timeout(time: 8, unit: 'MINUTES') {
-                                            script {
+
+                                            timeout(time: 8, unit: 'MINUTES') {
                                                 int scanStatus = 1
                                                 for (int attempt = 1; attempt <= 3; attempt++) {
                                                     echo "Sonar scan attempt ${attempt}/3"
@@ -189,9 +201,7 @@ pipeline {
                 stage('Deploy') {
                     steps {
                         sh '''
-                            docker rm -f fintech-postgres fintech-api-app 2>/dev/null || true
-                            docker compose down || true
-                            docker compose up -d db app
+                            docker compose up -d --force-recreate app
                         '''
                     }
                 }
@@ -274,7 +284,7 @@ pipeline {
 
     post {
         always {
-            sh 'docker compose down || true'
+            sh 'docker compose stop app || true'
             sh 'rm -f .env settings.xml || true'
         }
         success {
