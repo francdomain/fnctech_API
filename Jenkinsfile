@@ -4,10 +4,9 @@ pipeline {
     environment {
         // Non-secret config
         COMPOSE_PROJECT_NAME      = 'fintech'
-        DOCKERHUB_REPO            = 'francdocmain/fnctech-api'
+        DOCKERHUB_REPO            = 'francdomain/fnctech-api'
         HOST_APP_PORT             = '8081'
         SONARQUBE_SERVER          = 'SonarQube'
-        SONAR_URL                 = 'http://172.26.44.147:9000'
         SONAR_PROJECT_KEY         = 'fintech-api'
         DOCKER_CREDENTIALS_ID     = 'dockerhub-credentials'
         SMOKE_TEST_CREDENTIALS_ID = 'fintech-uat-credentials'
@@ -40,39 +39,6 @@ pipeline {
                     env.IMAGE_BUILD  = "${env.DOCKERHUB_REPO}:${env.BUILD_NUMBER}"
                     env.IMAGE_LATEST = "${env.DOCKERHUB_REPO}:latest"
                 }
-                // Start DB early so SonarQube (system service) can connect during Code Quality stage
-                sh '''
-                    # Recreate db to avoid stale container settings from prior runs.
-                    docker compose rm -sf db || true
-                    docker compose up -d db
-
-                    # Guardrail: fintech db must NOT publish host port 5432 (conflicts with SonarQube postgres).
-                    DB_PUBLISHED_PORT=$(docker compose port db 5432 2>/dev/null || true)
-                    if [ -n "$DB_PUBLISHED_PORT" ]; then
-                        echo "ERROR: db service is publishing host port 5432; this conflicts with SonarQube DB on localhost:5432"
-                        echo "Published mapping: $DB_PUBLISHED_PORT"
-                        exit 1
-                    fi
-
-                    echo "Waiting for DB to become healthy..."
-                    for i in $(seq 1 30); do
-                        docker compose ps db | grep -q '(healthy)' && echo "DB is healthy" && break
-                        echo "DB not ready yet, attempt $i/30..."
-                        sleep 5
-                    done
-
-                    # If SonarQube lost its DB connection (HTTP 500), restart it now that DB is back up
-                    SONAR_API_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
-                        $SONAR_URL/api/settings/values.protobuf 2>/dev/null || echo "000")
-                    echo "SonarQube settings API probe (no-auth): HTTP $SONAR_API_CODE"
-                    if [ "$SONAR_API_CODE" = "500" ]; then
-                        echo "SonarQube DB connection is broken. Restarting SonarQube service..."
-                        sudo systemctl restart sonarqube \
-                            || echo "WARNING: sudo restart failed — add 'jenkins ALL=(ALL) NOPASSWD: /bin/systemctl restart sonarqube' to sudoers. Scan may fail."
-                        echo "Waiting 90s for SonarQube to reinitialize..."
-                        sleep 90
-                    fi
-                '''
             }
         }
 
@@ -117,58 +83,15 @@ pipeline {
                             configFileProvider([configFile(fileId: env.MAVEN_SETTINGS_ID, targetLocation: 'settings.xml')]) {
                                 withSonarQubeEnv("${SONARQUBE_SERVER}") {
                                     withCredentials([string(credentialsId: env.SONAR_TOKEN_CREDENTIAL_ID, variable: 'SONAR_TOKEN')]) {
-                                        script {
-                                            int sonarHealth = sh(
-                                                script: 'curl -fsS "$SONAR_HOST_URL/api/system/status" >/dev/null',
-                                                returnStatus: true
-                                            )
-                                            if (sonarHealth != 0) {
-                                                unstable("SonarQube server is unavailable (health-check failed). Skipping analysis for this run.")
-                                                return
-                                            }
-
-                                            int sonarSettingsApi = sh(
-                                                script: 'curl -fsS -u "$SONAR_TOKEN:" "$SONAR_HOST_URL/api/settings/values.protobuf" -o /dev/null',
-                                                returnStatus: true
-                                            )
-                                            if (sonarSettingsApi != 0) {
-                                                unstable("SonarQube settings API is unavailable (HTTP 500/timeout). Skipping analysis for this run.")
-                                                return
-                                            }
-
-                                            timeout(time: 8, unit: 'MINUTES') {
-                                                int scanStatus = 1
-                                                for (int attempt = 1; attempt <= 3; attempt++) {
-                                                    echo "Sonar scan attempt ${attempt}/3"
-                                                    scanStatus = sh(
-                                                        script: '''
-                                                            docker run --rm --network host -v "$WORKSPACE":/workspace -w /workspace ${MAVEN_IMAGE} \
-                                                              mvn ${MAVEN_CLI_OPTS} org.sonarsource.scanner.maven:sonar-maven-plugin:${SONAR_MAVEN_PLUGIN_VERSION}:sonar \
-                                                              -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                                                              -Dsonar.host.url=$SONAR_HOST_URL \
-                                                              -Dsonar.login=$SONAR_TOKEN \
-                                                              -Dsonar.qualitygate.wait=true \
-                                                              -Dsonar.ws.timeout=120
-                                                        ''',
-                                                        returnStatus: true
-                                                    )
-
-                                                    if (scanStatus == 0) {
-                                                        echo "Sonar scan completed successfully"
-                                                        break
-                                                    }
-
-                                                    if (attempt < 3) {
-                                                        echo "Sonar scan failed (likely server-side). Waiting 15s before retry..."
-                                                        sleep(time: 15, unit: 'SECONDS')
-                                                    }
-                                                }
-
-                                                if (scanStatus != 0) {
-                                                    unstable("SonarQube analysis failed after 3 attempts (server returned errors). Continuing pipeline as UNSTABLE.")
-                                                }
-                                            }
-                                        }
+                                        sh '''
+                                            docker run --rm --network host -v "$WORKSPACE":/workspace -w /workspace ${MAVEN_IMAGE} \
+                                              mvn ${MAVEN_CLI_OPTS} org.sonarsource.scanner.maven:sonar-maven-plugin:${SONAR_MAVEN_PLUGIN_VERSION}:sonar \
+                                              -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                              -Dsonar.host.url=$SONAR_HOST_URL \
+                                              -Dsonar.login=$SONAR_TOKEN \
+                                              -Dsonar.qualitygate.wait=true \
+                                              -Dsonar.ws.timeout=120
+                                        '''
                                     }
                                 }
                             }
@@ -212,7 +135,7 @@ pipeline {
                 stage('Deploy') {
                     steps {
                         sh '''
-                            docker compose up -d --force-recreate app
+                            docker compose up -d --force-recreate db app
                         '''
                     }
                 }
@@ -295,7 +218,7 @@ pipeline {
 
     post {
         always {
-            sh 'docker compose stop app || true'
+            sh 'docker compose down || true'
             sh 'rm -f .env settings.xml || true'
         }
         success {
