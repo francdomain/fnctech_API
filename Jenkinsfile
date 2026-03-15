@@ -147,7 +147,7 @@ pipeline {
                             fi
 
                             echo "Resolved app host port: $APP_HOST_PORT"
-                            for i in $(seq 1 90); do
+                            for i in $(seq 1 30); do
                                 status=$(curl -s -o /dev/null -w "%{http_code}" \
                                     -X POST http://localhost:${APP_HOST_PORT}/api/auth/login \
                                     -H "Content-Type: application/json" -d '{}' || true)
