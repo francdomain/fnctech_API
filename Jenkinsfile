@@ -4,7 +4,7 @@ pipeline {
     environment {
         // Non-secret config
         COMPOSE_PROJECT_NAME      = 'fintech'
-        DOCKERHUB_REPO            = 'francdocmain/fintech-api'
+        DOCKERHUB_REPO            = 'francdomain/fnctech-api'
         HOST_APP_PORT             = '8081'
         SONARQUBE_SERVER          = 'SonarQube'
         SONAR_URL                 = 'http://172.26.44.147:9000'
@@ -42,7 +42,16 @@ pipeline {
                 }
                 // Start DB early so SonarQube (system service) can connect during Code Quality stage
                 sh '''
+                    # Recreate db to avoid stale container settings from prior runs.
+                    docker compose rm -sf db || true
                     docker compose up -d db
+
+                    # Guardrail: fintech db must NOT publish host port 5432 (conflicts with SonarQube postgres).
+                    if docker compose port db 5432 >/dev/null 2>&1; then
+                        echo "ERROR: db service is publishing host port 5432; this conflicts with SonarQube DB on localhost:5432"
+                        exit 1
+                    fi
+
                     echo "Waiting for DB to become healthy..."
                     for i in $(seq 1 30); do
                         docker compose ps db | grep -q '(healthy)' && echo "DB is healthy" && break
