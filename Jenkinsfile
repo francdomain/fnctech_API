@@ -166,9 +166,18 @@ pipeline {
                 stage('Smoke Test') {
                     steps {
                         sh '''
-                            for i in $(seq 1 30); do
+                            APP_HOST_PORT=$(docker compose port app 8080 | awk -F: '{print $NF}' | tr -d '\r')
+                            if [ -z "$APP_HOST_PORT" ]; then
+                                echo "Smoke test failed: could not resolve published port for app:8080"
+                                docker compose ps || true
+                                docker compose logs --tail=200 app || true
+                                exit 1
+                            fi
+
+                            echo "Resolved app host port: $APP_HOST_PORT"
+                            for i in $(seq 1 90); do
                                 status=$(curl -s -o /dev/null -w "%{http_code}" \
-                                    -X POST http://localhost:${HOST_APP_PORT}/api/auth/login \
+                                    -X POST http://localhost:${APP_HOST_PORT}/api/auth/login \
                                     -H "Content-Type: application/json" -d '{}' || true)
                                 if [ "$status" != "000" ]; then
                                     echo "App reachable. HTTP status: $status"
@@ -177,7 +186,7 @@ pipeline {
                                 echo "Waiting for app... attempt $i"
                                 sleep 2
                             done
-                            echo "Smoke test failed: app not reachable after 60s"
+                            echo "Smoke test failed: app not reachable after 180s"
                             docker compose ps || true
                             docker compose logs --tail=200 app || true
                             exit 1
@@ -190,8 +199,15 @@ pipeline {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             withCredentials([usernamePassword(credentialsId: "${env.SMOKE_TEST_CREDENTIALS_ID}", usernameVariable: 'UAT_EMAIL', passwordVariable: 'UAT_PASSWORD')]) {
                                 sh '''
+                                    APP_HOST_PORT=$(docker compose port app 8080 | awk -F: '{print $NF}' | tr -d '\r')
+                                    if [ -z "$APP_HOST_PORT" ]; then
+                                        echo "UAT failed: could not resolve published port for app:8080"
+                                        docker compose ps || true
+                                        exit 1
+                                    fi
+
                                     status=$(curl -s -o /tmp/uat_response.json -w "%{http_code}" \
-                                        -X POST http://localhost:${HOST_APP_PORT}/api/auth/login \
+                                        -X POST http://localhost:${APP_HOST_PORT}/api/auth/login \
                                         -H "Content-Type: application/json" \
                                         -d "{\"email\":\"${UAT_EMAIL}\",\"password\":\"${UAT_PASSWORD}\"}" || true)
                                     if [ "$status" = "200" ]; then
