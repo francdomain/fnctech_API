@@ -211,7 +211,6 @@ pipeline {
     options {
         disableConcurrentBuilds()
         skipDefaultCheckout(true)
-        timestamps()
         timeout(time: 60, unit: 'MINUTES')
     }
 
