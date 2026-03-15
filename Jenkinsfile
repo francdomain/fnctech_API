@@ -39,6 +39,16 @@ pipeline {
                     env.IMAGE_BUILD  = "${env.DOCKERHUB_REPO}:${env.BUILD_NUMBER}"
                     env.IMAGE_LATEST = "${env.DOCKERHUB_REPO}:latest"
                 }
+                // Start DB early so SonarQube (system service) can connect during Code Quality stage
+                sh '''
+                    docker compose up -d db
+                    echo "Waiting for DB to become healthy..."
+                    for i in $(seq 1 30); do
+                        docker compose ps db | grep -q '(healthy)' && echo "DB is healthy" && break
+                        echo "DB not ready yet, attempt $i/30..."
+                        sleep 5
+                    done
+                '''
             }
         }
 
@@ -165,6 +175,8 @@ pipeline {
                                     sleep 15
                                 done
                                 docker compose build app
+                                docker tag fintech-app:latest ${IMAGE_BUILD}
+                                docker tag fintech-app:latest ${IMAGE_LATEST}
                             '''
                         }
                     }
@@ -178,7 +190,7 @@ pipeline {
                     steps {
                         sh '''
                             docker rm -f fintech-postgres fintech-api-app 2>/dev/null || true
-                            docker compose down -v || true
+                            docker compose down || true
                             docker compose up -d db app
                         '''
                     }
@@ -262,7 +274,7 @@ pipeline {
 
     post {
         always {
-            sh 'docker compose down -v || true'
+            sh 'docker compose down || true'
             sh 'rm -f .env settings.xml || true'
         }
         success {
