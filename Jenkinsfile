@@ -79,10 +79,10 @@ pipeline {
             stages {
                 stage('SonarQube Analysis') {
                     steps {
-                        catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
-                            configFileProvider([configFile(fileId: env.MAVEN_SETTINGS_ID, targetLocation: 'settings.xml')]) {
-                                withSonarQubeEnv("${SONARQUBE_SERVER}") {
-                                    withCredentials([string(credentialsId: env.SONAR_TOKEN_CREDENTIAL_ID, variable: 'SONAR_TOKEN')]) {
+                        configFileProvider([configFile(fileId: env.MAVEN_SETTINGS_ID, targetLocation: 'settings.xml')]) {
+                            withSonarQubeEnv("${SONARQUBE_SERVER}") {
+                                withCredentials([string(credentialsId: env.SONAR_TOKEN_CREDENTIAL_ID, variable: 'SONAR_TOKEN')]) {
+                                    timeout(time: 12, unit: 'MINUTES') {
                                         sh '''
                                             docker run --rm --network host -v "$WORKSPACE":/workspace -w /workspace ${MAVEN_IMAGE} \
                                               mvn ${MAVEN_CLI_OPTS} org.sonarsource.scanner.maven:sonar-maven-plugin:${SONAR_MAVEN_PLUGIN_VERSION}:sonar \
@@ -99,13 +99,8 @@ pipeline {
                     }
                 }
 
-                // stage('Quality Gate') {
-                //     steps {
-                //         timeout(time: 10, unit: 'MINUTES') {
-                //             waitForQualityGate abortPipeline: true
-                //         }
-                //     }
-                // }
+                // Keep quality gate enforcement in scanner with -Dsonar.qualitygate.wait=true.
+                // We intentionally avoid waitForQualityGate because webhook is not configured.
             }
         }
 
