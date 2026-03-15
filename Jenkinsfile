@@ -47,8 +47,10 @@ pipeline {
                     docker compose up -d db
 
                     # Guardrail: fintech db must NOT publish host port 5432 (conflicts with SonarQube postgres).
-                    if docker compose port db 5432 >/dev/null 2>&1; then
+                    DB_PUBLISHED_PORT=$(docker compose port db 5432 2>/dev/null || true)
+                    if [ -n "$DB_PUBLISHED_PORT" ]; then
                         echo "ERROR: db service is publishing host port 5432; this conflicts with SonarQube DB on localhost:5432"
+                        echo "Published mapping: $DB_PUBLISHED_PORT"
                         exit 1
                     fi
 
