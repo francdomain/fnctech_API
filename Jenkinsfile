@@ -135,7 +135,7 @@ pipeline {
                 stage('Deploy') {
                     steps {
                         sh '''
-                            docker compose up -d --force-recreate db app
+                            docker compose up -d db app
                         '''
                     }
                 }
@@ -218,7 +218,7 @@ pipeline {
 
     post {
         always {
-            sh 'docker compose down || true'
+            sh 'docker compose stop app || true'
             sh 'rm -f .env settings.xml || true'
         }
         success {
