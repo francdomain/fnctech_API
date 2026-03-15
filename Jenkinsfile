@@ -103,16 +103,37 @@ pipeline {
                                             }
                                         }
                                         timeout(time: 8, unit: 'MINUTES') {
-                                            retry(3) {
-                                                sh '''
-                                                    docker run --rm --network host -v "$WORKSPACE":/workspace -w /workspace ${MAVEN_IMAGE} \
-                                                      mvn ${MAVEN_CLI_OPTS} org.sonarsource.scanner.maven:sonar-maven-plugin:${SONAR_MAVEN_PLUGIN_VERSION}:sonar \
-                                                      -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                                                      -Dsonar.host.url=$SONAR_HOST_URL \
-                                                      -Dsonar.login=$SONAR_TOKEN \
-                                                      -Dsonar.qualitygate.wait=true \
-                                                      -Dsonar.ws.timeout=120
-                                                '''
+                                            script {
+                                                int scanStatus = 1
+                                                for (int attempt = 1; attempt <= 3; attempt++) {
+                                                    echo "Sonar scan attempt ${attempt}/3"
+                                                    scanStatus = sh(
+                                                        script: '''
+                                                            docker run --rm --network host -v "$WORKSPACE":/workspace -w /workspace ${MAVEN_IMAGE} \
+                                                              mvn ${MAVEN_CLI_OPTS} org.sonarsource.scanner.maven:sonar-maven-plugin:${SONAR_MAVEN_PLUGIN_VERSION}:sonar \
+                                                              -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                                              -Dsonar.host.url=$SONAR_HOST_URL \
+                                                              -Dsonar.login=$SONAR_TOKEN \
+                                                              -Dsonar.qualitygate.wait=true \
+                                                              -Dsonar.ws.timeout=120
+                                                        ''',
+                                                        returnStatus: true
+                                                    )
+
+                                                    if (scanStatus == 0) {
+                                                        echo "Sonar scan completed successfully"
+                                                        break
+                                                    }
+
+                                                    if (attempt < 3) {
+                                                        echo "Sonar scan failed (likely server-side). Waiting 15s before retry..."
+                                                        sleep(time: 15, unit: 'SECONDS')
+                                                    }
+                                                }
+
+                                                if (scanStatus != 0) {
+                                                    unstable("SonarQube analysis failed after 3 attempts (server returned errors). Continuing pipeline as UNSTABLE.")
+                                                }
                                             }
                                         }
                                     }
