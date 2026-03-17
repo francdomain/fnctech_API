@@ -344,7 +344,7 @@ pipeline {
         stage("build jar") {
             steps {
                 configFileProvider([configFile(fileId: env.MAVEN_SETTINGS_ID, targetLocation: 'settings.xml')]) {
-                    sh 'mvn clean package ${MAVEN_CLI_OPTS}'
+                    sh 'mvn clean package -s settings.xml -Dmaven.repo.local=/workspace/.m2/repository'
                 }
             }
         }
