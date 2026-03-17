@@ -226,6 +226,81 @@
 // }
 
 
+// pipeline {
+//     agent any
+
+//     tools {
+//         maven 'Maven'
+//     }
+
+//     environment {
+//         COMPOSE_PROJECT_NAME = 'fintech'
+//     }
+//     options {
+//         disableConcurrentBuilds()
+//         skipDefaultCheckout(true)
+//     }
+
+//     stages {
+//         stage('Initial cleanup') {
+//             steps {
+//                 dir("${WORKSPACE}") {
+//                     deleteDir()
+//                 }
+//             }
+//         }
+//         stage('Checkout') {
+//             steps {
+//                 git branch: 'main', url: 'https://github.com/francdomain/fnctech_API.git'
+//             }
+//         }
+//         stage("build jar") {
+//             steps {
+//                 echo "building the application..."
+//                 sh 'mvn package'
+//             }
+//         }
+//         stage('SonarQube analysis') {
+//             steps {
+//                 script {
+//                     withSonarQubeEnv(credentialsId: 'sonarqube-token', installationName: 'SonarQube') {
+//                         sh 'mvn clean package sonar:sonar -Dsonar.qualitygate.wait=true -Dsonar.ws.timeout=120'
+//                     }
+//                 }
+//             }
+//         }
+        
+//         stage("build image") {
+//             steps {
+//                 steps {
+//                         sh '''
+//                             docker compose up -d db app
+//                         '''
+//                     }
+//                 script {
+//                     echo "pushing image to docker hub..."
+//                     withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+//                         sh '''
+//                             echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+//                             docker tag ${DOCKER_USER}/fnctech-api:${BUILD_NUMBER}
+//                             docker push ${DOCKER_USER}/fnctech-api:${BUILD_NUMBER}
+//                             docker logout
+//                         '''
+//                     }
+//                 }
+//             }
+//         }
+//         stage("deploy") {
+//             steps {
+//                 script {
+//                     echo "deploying the application..."
+//                 }
+//             }
+//         }
+//     }
+// }
+
+
 pipeline {
     agent any
 
@@ -236,60 +311,62 @@ pipeline {
     environment {
         COMPOSE_PROJECT_NAME = 'fintech'
     }
+
     options {
         disableConcurrentBuilds()
         skipDefaultCheckout(true)
     }
 
     stages {
-        stage('Initial cleanup') {
+        stage('Initial Cleanup') {
             steps {
                 dir("${WORKSPACE}") {
                     deleteDir()
                 }
             }
         }
+
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/francdomain/fnctech_API.git'
             }
         }
+
         stage("build jar") {
             steps {
                 echo "building the application..."
                 sh 'mvn package'
             }
         }
-        stage('SonarQube analysis') {
+
+        stage('SonarQube Analysis') {
             steps {
                 script {
                     withSonarQubeEnv(credentialsId: 'sonarqube-token', installationName: 'SonarQube') {
-                        sh 'mvn clean package sonar:sonar -Dsonar.qualitygate.wait=true -Dsonar.ws.timeout=120'
+                        sh 'mvn clean package sonar:sonar'
                     }
                 }
             }
         }
-        // stage("Quality Gate"){
-        //     timeout(time: 12, unit: 'MINUTES') {
-        //         def qg = waitForQualityGate()
-        //         if (qg.status != 'OK') {
-        //             error "Pipeline aborted due to quality gate failure: ${qg.status}"
-        //         }
-        //     }
-        // }
-        stage("build image") {
+
+        stage('Quality Gate') {
             steps {
-                steps {
-                        sh '''
-                            docker compose up -d db app
-                        '''
-                    }
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Build & Push Image') {
+            steps {
+                sh 'docker compose up -d db app'
+
                 script {
-                    echo "pushing image to docker hub..."
+                    echo "Pushing image to Docker Hub..."
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
                             echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                            docker tag ${DOCKER_USER}/fnctech-api:${BUILD_NUMBER}
+                            docker tag fnctech-api:latest ${DOCKER_USER}/fnctech-api:${BUILD_NUMBER}
                             docker push ${DOCKER_USER}/fnctech-api:${BUILD_NUMBER}
                             docker logout
                         '''
@@ -297,12 +374,34 @@ pipeline {
                 }
             }
         }
-        stage("deploy") {
+
+        stage('Deploy') {
             steps {
                 script {
-                    echo "deploying the application..."
+                    echo "Deploying the application..."
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh '''
+                            echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+                            docker pull ${DOCKER_USER}/fnctech-api:${BUILD_NUMBER}
+                            docker compose down
+                            IMAGE_TAG=${BUILD_NUMBER} docker compose up -d
+                            docker logout
+                        '''
+                    }
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline completed successfully. Build #${BUILD_NUMBER} deployed."
+        }
+        failure {
+            echo "Pipeline failed. Check logs for build #${BUILD_NUMBER}."
+        }
+        always {
+            sh 'docker logout || true'
         }
     }
 }
