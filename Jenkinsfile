@@ -313,11 +313,8 @@ pipeline {
         COMPOSE_PROJECT_NAME = 'fintech'
         DOCKERHUB_REPO            = 'francdocmain/fnctech-api'
         HOST_APP_PORT             = '8081'
-        SONARQUBE_SERVER          = 'SonarQube'
         SONAR_PROJECT_KEY         = 'fintech-api'
-        DOCKER_CREDENTIALS_ID     = 'dockerhub-credentials'
         SMOKE_TEST_CREDENTIALS_ID = 'fintech-uat-credentials'
-        SONAR_TOKEN_CREDENTIAL_ID  = 'sonarqube-token'
         MAVEN_SETTINGS_ID         = '11e2101e-5b3d-4afa-894f-834c2cfacd33'
         MAVEN_IMAGE               = 'maven:3.9-eclipse-temurin-17'
         MAVEN_CLI_OPTS            = '-B -ntp -s settings.xml -Dmaven.repo.local=/workspace/.m2/repository'
@@ -347,21 +344,17 @@ pipeline {
         stage("build jar") {
             steps {
                 configFileProvider([configFile(fileId: env.MAVEN_SETTINGS_ID, targetLocation: 'settings.xml')]) {
-                    sh 'mvn clean package -s settings.xml -Dmaven.repo.local=${WORKSPACE}/.m2/repository'
+                    sh 'mvn clean package ${MAVEN_CLI_OPTS}'
                     // sh 'docker run --rm --network host -v "$WORKSPACE":/workspace -w /workspace ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} clean compile'
                 }
             }
-            // steps {
-            //     echo "building the application..."
-            //     sh 'mvn clean package -Dmaven.repo.local=${WORKSPACE}/.m2'
-            // }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 script {
                     withSonarQubeEnv(credentialsId: 'sonarqube-token', installationName: 'SonarQube') {
-                        sh 'mvn clean package sonar:sonar'
+                        sh 'mvn clean package sonar:sonar ${MAVEN_CLI_OPTS}'
                     }
                 }
             }
