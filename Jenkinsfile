@@ -310,8 +310,7 @@ pipeline {
     }
 
     environment {
-        COMPOSE_PROJECT_NAME = 'fintech'
-        DOCKERHUB_REPO            = 'francdocmain/fnctech-api'
+        COMPOSE_PROJECT_NAME      = 'fintech'
         HOST_APP_PORT             = '8081'
         SONAR_PROJECT_KEY         = 'fintech-api'
         SMOKE_TEST_CREDENTIALS_ID = 'fintech-uat-credentials'
@@ -362,17 +361,12 @@ pipeline {
             }
         }
 
-        // stage('Quality Gate') {
-        //     steps {
-        //         timeout(time: 5, unit: 'MINUTES') {
-        //             waitForQualityGate abortPipeline: true
-        //         }
-        //     }
-        // }
-
         stage('Build & Push Image') {
             steps {
-                sh 'docker compose up -d db app'
+                withCredentials([file(credentialsId: 'fintech-env-file', variable: 'ENV_FILE')]) {
+                    sh 'cp $ENV_FILE .env'
+                    sh 'docker compose up -d db app'
+                }
 
                 script {
                     echo "Pushing image to Docker Hub..."
@@ -392,29 +386,30 @@ pipeline {
             steps {
                 script {
                     echo "Deploying the application..."
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh '''
-                            echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                            docker pull ${DOCKER_USER}/fnctech-api:${BUILD_NUMBER}
-                            docker compose down
-                            IMAGE_TAG=${BUILD_NUMBER} docker compose up -d
-                            docker logout
-                        '''
-                    }
+                    // withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    //     sh '''
+                    //         echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+                    //         docker pull ${DOCKER_USER}/fnctech-api:${BUILD_NUMBER}
+                    //         docker compose down
+                    //         IMAGE_TAG=${BUILD_NUMBER} docker compose up -d
+                    //         docker logout
+                    //     '''
+                    // }
                 }
             }
         }
     }
 
     post {
+        always {
+            sh 'rm -f .env'
+            sh 'docker logout || true'
+        }
         success {
             echo "Pipeline completed successfully. Build #${BUILD_NUMBER} deployed."
         }
         failure {
             echo "Pipeline failed. Check logs for build #${BUILD_NUMBER}."
-        }
-        always {
-            sh 'docker logout || true'
         }
     }
 }
