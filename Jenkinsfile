@@ -336,7 +336,7 @@ pipeline {
         stage("build jar") {
             steps {
                 configFileProvider([configFile(fileId: env.MAVEN_SETTINGS_ID, targetLocation: 'settings.xml')]) {
-                    sh 'mvn clean package'
+                    sh 'mvn clean package -s settings.xml -Dmaven.repo.local=${WORKSPACE}/.m2/repository'
                     // sh 'docker run --rm --network host -v "$WORKSPACE":/workspace -w /workspace ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} clean compile'
                 }
             }
