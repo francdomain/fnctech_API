@@ -351,11 +351,13 @@ pipeline {
             steps {
                 script {
                     withSonarQubeEnv(credentialsId: 'sonarqube-token', installationName: 'SonarQube') {
-                        sh '''
-                            mvn sonar:sonar -B -ntp -s settings.xml -Dmaven.repo.local=${WORKSPACE}/.m2/repository -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                            -Dsonar.qualitygate.wait=true \
-                            -Dsonar.ws.timeout=120
-                        '''
+                        timeout(time: 12, unit: 'MINUTES') { 
+                            sh '''
+                                mvn sonar:sonar -B -ntp -s settings.xml -Dmaven.repo.local=${WORKSPACE}/.m2/repository -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                -Dsonar.qualitygate.wait=true \
+                                -Dsonar.ws.timeout=120
+                            '''
+                        }
                     }
                 }
             }
