@@ -335,7 +335,7 @@ pipeline {
         stage("build jar") {
             steps {
                 echo "building the application..."
-                sh 'mvn package'
+                sh 'mvn clean package'
             }
         }
 
