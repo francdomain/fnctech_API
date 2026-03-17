@@ -335,9 +335,15 @@ pipeline {
 
         stage("build jar") {
             steps {
-                echo "building the application..."
-                sh 'mvn clean package -Dmaven.repo.local=${WORKSPACE}/.m2'
+                configFileProvider([configFile(fileId: env.MAVEN_SETTINGS_ID, targetLocation: 'settings.xml')]) {
+                    sh 'mvn clean package'
+                    // sh 'docker run --rm --network host -v "$WORKSPACE":/workspace -w /workspace ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} clean compile'
+                }
             }
+            // steps {
+            //     echo "building the application..."
+            //     sh 'mvn clean package -Dmaven.repo.local=${WORKSPACE}/.m2'
+            // }
         }
 
         stage('SonarQube Analysis') {
