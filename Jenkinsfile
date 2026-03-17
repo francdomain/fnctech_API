@@ -242,6 +242,13 @@ pipeline {
     }
 
     stages {
+        stage('Initial cleanup') {
+            steps {
+                dir("${WORKSPACE}") {
+                    deleteDir()
+                }
+            }
+        }
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/francdomain/fnctech_API.git'
