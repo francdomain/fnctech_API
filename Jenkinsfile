@@ -344,7 +344,7 @@ pipeline {
         stage("build jar") {
             steps {
                 configFileProvider([configFile(fileId: env.MAVEN_SETTINGS_ID, targetLocation: 'settings.xml')]) {
-                    sh 'mvn clean package -s settings.xml -Dmaven.repo.local=/workspace/.m2/repository'
+                    sh 'mvn clean package -B -ntp -s settings.xml -Dmaven.repo.local=${WORKSPACE}/.m2/repository'
                 }
             }
         }
@@ -352,7 +352,7 @@ pipeline {
             steps {
                 script {
                     withSonarQubeEnv(credentialsId: 'sonarqube-token', installationName: 'SonarQube') {
-                        sh 'mvn clean package sonar:sonar ${MAVEN_CLI_OPTS}'
+                        sh "mvn sonar:sonar -B -ntp -s settings.xml -Dmaven.repo.local=${WORKSPACE}/.m2/repository -Dsonar.projectKey=${SONAR_PROJECT_KEY}"
                     }
                 }
             }
