@@ -35,7 +35,6 @@ class AuthControllerTest {
     @MockBean private TransactionService transactionService;
     @MockBean private JwtUtils jwtUtils;
     @MockBean private UserDetailsService userDetailsService;
-    @MockBean private KafkaProducerService kafkaProducerService;
 
     private AuthResponse sampleAuthResponse() {
         return AuthResponse.builder()
