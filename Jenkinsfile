@@ -345,11 +345,9 @@ pipeline {
             steps {
                 configFileProvider([configFile(fileId: env.MAVEN_SETTINGS_ID, targetLocation: 'settings.xml')]) {
                     sh 'mvn clean package ${MAVEN_CLI_OPTS}'
-                    // sh 'docker run --rm --network host -v "$WORKSPACE":/workspace -w /workspace ${MAVEN_IMAGE} mvn ${MAVEN_CLI_OPTS} clean compile'
                 }
             }
         }
-
         stage('SonarQube Analysis') {
             steps {
                 script {
