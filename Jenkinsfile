@@ -336,7 +336,7 @@ pipeline {
         stage("build jar") {
             steps {
                 echo "building the application..."
-                sh 'mvn clean package'
+                sh 'mvn clean package -Dmaven.repo.local=${WORKSPACE}/.m2'
             }
         }
 
