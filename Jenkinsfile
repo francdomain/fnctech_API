@@ -263,12 +263,16 @@ pipeline {
         // }
         stage("build image") {
             steps {
+                steps {
+                        sh '''
+                            docker compose up -d db app
+                        '''
+                    }
                 script {
-                    echo "building the docker image..."
+                    echo "pushing image to docker hub..."
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
                             echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                            docker build -t ${DOCKER_USER}/fnctech-api:${BUILD_NUMBER} .
                             docker tag ${DOCKER_USER}/fnctech-api:${BUILD_NUMBER}
                             docker push ${DOCKER_USER}/fnctech-api:${BUILD_NUMBER}
                             docker logout
@@ -286,3 +290,4 @@ pipeline {
         }
     }
 }
+
