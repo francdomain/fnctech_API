@@ -236,6 +236,10 @@ pipeline {
     environment {
         COMPOSE_PROJECT_NAME = 'fintech'
     }
+    options {
+        disableConcurrentBuilds()
+        skipDefaultCheckout(true)
+    }
 
     stages {
         stage('Checkout') {
