@@ -2,7 +2,6 @@ package com.fintech.controller;
 
 import com.fintech.dto.Dto.*;
 import com.fintech.service.AuthService;
-import com.fintech.service.KafkaProducerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
-    private final KafkaProducerService kafkaProducerService;
 
     /**
      * POST /api/auth/register
@@ -36,13 +34,4 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok(response, "Login successful"));
     }
 
-    /**
-     * POST /api/auth/kafka/send
-     * Send a message to Kafka test-topic
-     */
-    @PostMapping("/kafka/send")
-    public ResponseEntity<String> sendKafkaMessage(@RequestParam String message) {
-        kafkaProducerService.sendMessage(message);
-        return ResponseEntity.ok("Message sent to Kafka: " + message);
-    }
 }
