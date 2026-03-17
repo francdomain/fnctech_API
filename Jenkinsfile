@@ -238,6 +238,11 @@ pipeline {
     }
 
     stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/francdomain/fnctech_API.git'
+            }
+        }
         stage("build jar") {
             steps {
                 echo "building the application..."
