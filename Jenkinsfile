@@ -311,6 +311,17 @@ pipeline {
 
     environment {
         COMPOSE_PROJECT_NAME = 'fintech'
+        DOCKERHUB_REPO            = 'francdocmain/fnctech-api'
+        HOST_APP_PORT             = '8081'
+        SONARQUBE_SERVER          = 'SonarQube'
+        SONAR_PROJECT_KEY         = 'fintech-api'
+        DOCKER_CREDENTIALS_ID     = 'dockerhub-credentials'
+        SMOKE_TEST_CREDENTIALS_ID = 'fintech-uat-credentials'
+        SONAR_TOKEN_CREDENTIAL_ID  = 'sonarqube-token'
+        MAVEN_SETTINGS_ID         = '11e2101e-5b3d-4afa-894f-834c2cfacd33'
+        MAVEN_IMAGE               = 'maven:3.9-eclipse-temurin-17'
+        MAVEN_CLI_OPTS            = '-B -ntp -s settings.xml -Dmaven.repo.local=/workspace/.m2/repository'
+        SONAR_MAVEN_PLUGIN_VERSION = '4.0.0.4121'
     }
 
     options {
