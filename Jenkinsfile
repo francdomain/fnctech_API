@@ -67,13 +67,15 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'fintech-env-file', variable: 'ENV_FILE')]) {
                     sh 'cp $ENV_FILE .env'
-                    sh 'docker compose up -d db app'
                 }
 
                 script {
                     echo "Pushing image to Docker Hub..."
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
+                            DOCKER_USER=${DOCKER_USER} GIT_SHA=${GIT_SHA} docker compose build app
+                            DOCKER_USER=${DOCKER_USER} GIT_SHA=${GIT_SHA} docker compose up -d db app
+                            
                             echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
                             docker push ${DOCKER_USER}/fnctech-api:$GIT_SHA
                             docker logout
