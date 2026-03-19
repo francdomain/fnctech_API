@@ -1,0 +1,7 @@
+.env
+settings.xml
+target/
+*.log
+.idea/
+.vscode/
+
