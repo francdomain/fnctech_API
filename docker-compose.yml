@@ -21,7 +21,6 @@ services:
   app:
     build:
       context: .
-    image: ${DOCKER_USER}/fnctech-api:${GIT_SHA}
     depends_on:
       db:
         condition: service_healthy

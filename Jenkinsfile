@@ -7,15 +7,15 @@ pipeline {
     }
 
     environment {
-        COMPOSE_PROJECT_NAME      = 'fintech'
-        HOST_APP_PORT             = '8081'
-        GIT_SHA                   = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-        SONAR_PROJECT_KEY         = 'fintech-api'
-        SONAR_TOKEN               = credentials('sonarqube-token')
-        SMOKE_TEST_CREDENTIALS_ID = 'fintech-uat-credentials'
-        MAVEN_SETTINGS_ID         = '1cf7f93c-2f77-4b22-8fbc-6422ea025ca5'
-        MAVEN_IMAGE               = 'maven:3.9-eclipse-temurin-17'
-        MAVEN_CLI_OPTS            = '-B -ntp -s settings.xml -Dmaven.repo.local=/workspace/.m2/repository'
+        COMPOSE_PROJECT_NAME       = 'fintech'
+        HOST_APP_PORT              = '8081'
+        GIT_SHA                    = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+        SONAR_PROJECT_KEY          = 'fintech-api'
+        SONAR_TOKEN                = credentials('sonarqube-token')
+        SMOKE_TEST_CREDENTIALS_ID  = 'fintech-uat-credentials'
+        MAVEN_SETTINGS_ID          = '1cf7f93c-2f77-4b22-8fbc-6422ea025ca5'
+        MAVEN_IMAGE                = 'maven:3.9-eclipse-temurin-17'
+        MAVEN_CLI_OPTS             = '-B -ntp -s settings.xml -Dmaven.repo.local=/workspace/.m2/repository'
         SONAR_MAVEN_PLUGIN_VERSION = '4.0.0.4121'
     }
 
@@ -27,9 +27,7 @@ pipeline {
     stages {
         stage('Initial Cleanup') {
             steps {
-                dir("${WORKSPACE}") {
-                    deleteDir()
-                }
+                dir("${WORKSPACE}") { deleteDir() }
             }
         }
 
@@ -39,68 +37,71 @@ pipeline {
             }
         }
 
-        stage("build jar") {
+        stage('Build Jar') {
             steps {
                 configFileProvider([configFile(fileId: env.MAVEN_SETTINGS_ID, targetLocation: 'settings.xml')]) {
                     sh 'mvn clean package -B -ntp -s settings.xml -Dmaven.repo.local=${WORKSPACE}/.m2/repository'
                 }
             }
         }
+
         stage('SonarQube Analysis') {
             steps {
-                script {
-                    withSonarQubeEnv(credentialsId: 'sonarqube-token', installationName: 'SonarQube') {
-                        timeout(time: 12, unit: 'MINUTES') { 
-                            sh '''
-                                mvn sonar:sonar -B -ntp -s settings.xml -Dmaven.repo.local=${WORKSPACE}/.m2/repository -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                withSonarQubeEnv(credentialsId: 'sonarqube-token', installationName: 'SonarQube') {
+                    timeout(time: 12, unit: 'MINUTES') {
+                        sh '''
+                            mvn sonar:sonar -B -ntp -s settings.xml \
+                                -Dmaven.repo.local=${WORKSPACE}/.m2/repository \
+                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                                 -Dsonar.login=${SONAR_TOKEN} \
                                 -Dsonar.qualitygate.wait=true \
                                 -Dsonar.ws.timeout=120
-                            '''
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Build & Push Image') {
-            steps {
-                withCredentials([file(credentialsId: 'fintech-env-file', variable: 'ENV_FILE')]) {
-                    sh 'cp $ENV_FILE .env'
-                }
-
-                script {
-                    echo "Pushing image to Docker Hub..."
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh '''
-                            DOCKER_USER=${DOCKER_USER} GIT_SHA=${GIT_SHA} docker compose build app
-                            DOCKER_USER=${DOCKER_USER} GIT_SHA=${GIT_SHA} docker compose up -d db app
-                            
-                            echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                            docker push ${DOCKER_USER}/fnctech-api:$GIT_SHA
-                            docker logout
                         '''
                     }
                 }
             }
         }
 
-        // stage('Deploy') {
-        //     steps {
-        //         script {
-        //             echo "Deploying the application..."
-        //             // withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-        //             //     sh '''
-        //             //         echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-        //             //         docker pull ${DOCKER_USER}/fnctech-api:${BUILD_NUMBER}
-        //             //         docker compose down
-        //             //         IMAGE_TAG=${BUILD_NUMBER} docker compose up -d
-        //             //         docker logout
-        //             //     '''
-        //             // }
-        //         }
-        //     }
-        // }
+        stage('Build Image') {
+            steps {
+                withCredentials([
+                    file(credentialsId: 'fintech-env-file', variable: 'ENV_FILE'),
+                    usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')
+                ]) {
+                    sh '''
+                        cp $ENV_FILE .env
+                        docker compose up -d --build db app
+                        docker tag $(docker compose images -q app) ${DOCKER_USER}/fnctech-api:${GIT_SHA}
+                    '''
+                }
+            }
+        }
+
+        stage('Trivy Scan') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh './scripts/trivy-scan.sh ${DOCKER_USER}/fnctech-api:${GIT_SHA}'
+                }
+            }
+            post {
+                always {
+                    // Warnings NG displays results as a trend graph in Jenkins UI
+                    recordIssues(tools: [trivy(pattern: 'trivy-results.json')])
+                }
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                        echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+                        docker push ${DOCKER_USER}/fnctech-api:${GIT_SHA}
+                        docker logout
+                    '''
+                }
+            }
+        }
     }
 
     post {
@@ -116,4 +117,3 @@ pipeline {
         }
     }
 }
-
