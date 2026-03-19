@@ -85,8 +85,7 @@ pipeline {
             }
             post {
                 always {
-                    // Warnings NG displays results as a trend graph in Jenkins UI
-                    recordIssues(tools: [trivy(pattern: 'trivy-results.json')])
+                    archiveArtifacts artifacts: 'trivy-report.txt', allowEmptyArchive: true
                 }
             }
         }

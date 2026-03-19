@@ -16,10 +16,10 @@ trivy image --exit-code 0 --severity LOW,MEDIUM --format table "$IMAGE"
 # HIGH, CRITICAL — fail pipeline
 trivy image --exit-code 1 --severity HIGH,CRITICAL --format table "$IMAGE"
 
-# Full report in JSON for Warnings NG plugin
+# Full report saved as txt
 trivy image \
     --exit-code 0 \
     --severity LOW,MEDIUM,HIGH,CRITICAL \
-    --format json \
-    --output trivy-results.json \
+    --format table \
+    --output trivy-report.txt \
     "$IMAGE" || true
