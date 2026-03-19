@@ -74,7 +74,7 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
                             echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                            docker tag fnctech-api:latest ${DOCKER_USER}/fnctech-api:${BUILD_NUMBER}
+                            docker tag ${DOCKER_USER}/fnctech-api:${BUILD_NUMBER}
                             docker push ${DOCKER_USER}/fnctech-api:${BUILD_NUMBER}
                             docker logout
                         '''
