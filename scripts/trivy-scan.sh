@@ -10,16 +10,17 @@ fi
 
 echo "Scanning $IMAGE..."
 
-# LOW, MEDIUM — report only
-trivy image --exit-code 0 --severity LOW,MEDIUM --format table "$IMAGE"
-
-# HIGH, CRITICAL — fail pipeline
-trivy image --exit-code 1 --severity HIGH,CRITICAL --format table "$IMAGE"
-
 # Full report saved as txt
 trivy image \
     --exit-code 0 \
     --severity LOW,MEDIUM,HIGH,CRITICAL \
     --format table \
     --output trivy-report.txt \
-    "$IMAGE" || true
+    "$IMAGE"
+
+# Fail pipeline if HIGH or CRITICAL found
+trivy image \
+    --exit-code 1 \
+    --severity HIGH,CRITICAL \
+    --format table \
+    "$IMAGE"
