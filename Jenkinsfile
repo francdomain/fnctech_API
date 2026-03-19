@@ -10,11 +10,12 @@ pipeline {
         COMPOSE_PROJECT_NAME      = 'fintech'
         HOST_APP_PORT             = '8081'
         SONAR_PROJECT_KEY         = 'fintech-api'
+        SONAR_TOKEN               = credentials('sonarqube-token')
         SMOKE_TEST_CREDENTIALS_ID = 'fintech-uat-credentials'
         MAVEN_SETTINGS_ID         = '1cf7f93c-2f77-4b22-8fbc-6422ea025ca5'
         MAVEN_IMAGE               = 'maven:3.9-eclipse-temurin-17'
         MAVEN_CLI_OPTS            = '-B -ntp -s settings.xml -Dmaven.repo.local=/workspace/.m2/repository'
-        SONAR_MAVEN_PLUGIN_VERSION = '4.0.0.4121'
+        // SONAR_MAVEN_PLUGIN_VERSION = '4.0.0.4121'
     }
 
     options {
@@ -51,6 +52,7 @@ pipeline {
                         timeout(time: 12, unit: 'MINUTES') { 
                             sh '''
                                 mvn sonar:sonar -B -ntp -s settings.xml -Dmaven.repo.local=${WORKSPACE}/.m2/repository -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                -Dsonar.login=${SONAR_TOKEN} \
                                 -Dsonar.qualitygate.wait=true \
                                 -Dsonar.ws.timeout=120
                             '''
