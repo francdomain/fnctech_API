@@ -9,6 +9,7 @@ pipeline {
     environment {
         COMPOSE_PROJECT_NAME      = 'fintech'
         HOST_APP_PORT             = '8081'
+        GIT_SHA                   = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
         SONAR_PROJECT_KEY         = 'fintech-api'
         SONAR_TOKEN               = credentials('sonarqube-token')
         SMOKE_TEST_CREDENTIALS_ID = 'fintech-uat-credentials'
@@ -74,8 +75,7 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
                             echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                            docker tag ${DOCKER_USER}/fnctech-api:${BUILD_NUMBER}
-                            docker push ${DOCKER_USER}/fnctech-api:${BUILD_NUMBER}
+                            docker push ${DOCKER_USER}/fnctech-api:$GIT_SHA
                             docker logout
                         '''
                     }
