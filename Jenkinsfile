@@ -15,7 +15,7 @@ pipeline {
         MAVEN_SETTINGS_ID         = '1cf7f93c-2f77-4b22-8fbc-6422ea025ca5'
         MAVEN_IMAGE               = 'maven:3.9-eclipse-temurin-17'
         MAVEN_CLI_OPTS            = '-B -ntp -s settings.xml -Dmaven.repo.local=/workspace/.m2/repository'
-        // SONAR_MAVEN_PLUGIN_VERSION = '4.0.0.4121'
+        SONAR_MAVEN_PLUGIN_VERSION = '4.0.0.4121'
     }
 
     options {
@@ -71,7 +71,7 @@ pipeline {
 
                 script {
                     echo "Pushing image to Docker Hub..."
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
                             echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
                             docker tag fnctech-api:latest ${DOCKER_USER}/fnctech-api:${BUILD_NUMBER}
