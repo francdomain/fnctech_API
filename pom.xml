@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.13</version>
+        <version>3.3.15</version>
         <relativePath/>
     </parent>
 
@@ -131,7 +131,7 @@
         <dependency>
             <groupId>org.lz4</groupId>
             <artifactId>lz4-java</artifactId>
-            <version>1.8.1</version>
+            <version>1.10.1</version>
         </dependency>
 
         <!-- Spring for Apache Kafka -->

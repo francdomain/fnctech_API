@@ -11,6 +11,9 @@ RUN mvn -B clean package -DskipTests
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
+# Force upgrade Alpine packages to pick up security patches
+RUN apk update && apk upgrade --no-cache
+
 COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 8080
