@@ -84,11 +84,11 @@ pipeline {
                     sh './scripts/trivy-scan.sh ${DOCKER_USER}/fnctech-api:${GIT_SHA}'
                 }
             }
-            post {
-                always {
-                    archiveArtifacts artifacts: 'trivy-report.txt', allowEmptyArchive: true
-                }
-            }
+            // post {
+            //     always {
+            //         archiveArtifacts artifacts: 'trivy-report.txt', allowEmptyArchive: true
+            //     }
+            // }
         }
 
         stage('Push Image') {
