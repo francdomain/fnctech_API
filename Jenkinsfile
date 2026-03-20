@@ -70,7 +70,7 @@ pipeline {
                 ]) {
                     sh '''
                         cp $ENV_FILE .env
-                        docker compose up -d --build db app
+                        docker compose up -d --build --no-cache db app
                         docker tag $(docker compose images -q app) ${DOCKER_USER}/fnctech-api:${GIT_SHA}
                     '''
                 }
