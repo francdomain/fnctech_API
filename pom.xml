@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.0</version>
+        <version>3.3.11</version>
         <relativePath/>
     </parent>
 
@@ -20,7 +20,7 @@
 
     <properties>
         <java.version>17</java.version>
-        <jjwt.version>0.11.5</jjwt.version>
+        <jjwt.version>0.12.6</jjwt.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.resources.plugin.version>3.3.1</maven.resources.plugin.version>
         <maven.filtering.version>3.3.1</maven.filtering.version>
@@ -78,6 +78,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
+            <version>42.7.2</version>
             <scope>runtime</scope>
         </dependency>
 
@@ -123,13 +124,13 @@
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
-            <version>3.1.1</version>
+            <version>3.3.4</version>
         </dependency>
         <!-- Apache Kafka client -->
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
-            <version>3.7.0</version>
+            <version>3.9.0</version>
         </dependency>
     </dependencies>
 
