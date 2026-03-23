@@ -30,6 +30,10 @@
         <maven.clean.plugin.version>3.3.2</maven.clean.plugin.version>
         <jacoco.plugin.version>0.8.11</jacoco.plugin.version>
         <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.coverage.exclusions>
+            **/config/SecurityConfig.java,
+            **/config/DataSeeder.java
+        </sonar.coverage.exclusions>
     </properties>
 
     <dependencyManagement>
