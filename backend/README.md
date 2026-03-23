@@ -47,10 +47,8 @@ ci-with-jenkins/
 ## Running Locally with Docker Compose
 
 ```bash
-# Copy and populate the env file
-cp .env.example .env   # or create manually (see .env Keys below)
+cp .env.example .env
 
-# Start database + app
 docker compose up -d
 ```
 

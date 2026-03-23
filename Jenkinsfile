@@ -98,7 +98,7 @@ pipeline {
         stage('Trivy Scan - Frontend') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh 'trivy image --exit-code 1 --severity HIGH,CRITICAL ${DOCKER_USER}/fnctech-frontend:${GIT_SHA}'
+                    sh 'trivy image --exit-code 1 --severity HIGH,CRITICAL --timeout 15m ${DOCKER_USER}/fnctech-frontend:${GIT_SHA}'
                 }
             }
         }

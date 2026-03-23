@@ -15,6 +15,7 @@ trivy image \
     --exit-code 0 \
     --severity LOW,MEDIUM,HIGH,CRITICAL \
     --format table \
+    --timeout 15m \
     --output trivy-report.txt \
     "$IMAGE"
 
@@ -23,4 +24,5 @@ trivy image \
     --exit-code 1 \
     --severity HIGH,CRITICAL \
     --format table \
+    --timeout 15m \
     "$IMAGE"
